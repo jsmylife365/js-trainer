@@ -1,0 +1,685 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="mobile-web-app-capable" content="yes">
+<title>JS 집중력·기억력 향상훈련</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html,body{width:100%;height:100%;background:#1a1a1a;display:flex;align-items:center;justify-content:center;font-family:-apple-system,'Malgun Gothic','Apple SD Gothic Neo',sans-serif;overflow:hidden;}
+#app{width:min(100vw,calc(100vh*16/9));height:min(100vh,calc(100vw*9/16));display:flex;flex-direction:column;border-radius:10px;overflow:hidden;box-shadow:0 8px 40px rgba(0,0,0,.6);}
+#TR{flex:8;position:relative;background:#f0efe8;}
+canvas{position:absolute;top:0;left:0;width:100%;height:100%;}
+#SH{position:absolute;transform:translate(-50%,-50%);will-change:left,top;border-radius:50%;opacity:0;}
+#WE{position:absolute;transform:translate(-50%,-50%);white-space:nowrap;font-family:'Malgun Gothic','Apple SD Gothic Neo','Noto Sans KR',sans-serif;font-weight:700;color:#111;letter-spacing:.04em;pointer-events:none;opacity:0;}
+#slots{position:absolute;top:0;left:0;width:100%;height:100%;z-index:2;pointer-events:none;display:none;}
+.badge{font-size:clamp(9px,1.1vw,11px);background:#fff;border:.5px solid #ddd;border-radius:4px;padding:2px 8px;color:#666;}
+#bc{font-weight:500;color:#111;min-width:58px;text-align:center;}
+#cbar{flex:1;display:flex;align-items:center;gap:4px;padding:0 8px;background:#fff;border-top:.5px solid #e0e0e0;min-height:38px;overflow:hidden;}
+button{font-size:clamp(9px,1vw,10px);padding:2px 6px;border:.5px solid #bbb;border-radius:5px;background:transparent;cursor:pointer;white-space:nowrap;transition:background .1s;}
+button:hover{background:#f0f0f0;}
+button.active{background:#e6f1fb;color:#185fa5;border-color:#185fa5;}
+.sep{width:.5px;height:14px;background:#ddd;flex-shrink:0;}
+input[type=range]{flex:1;min-width:36px;max-width:90px;}
+#OV{display:none;position:absolute;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.87);z-index:30;flex-direction:column;align-items:center;justify-content:center;gap:12px;}
+#ov-msg{display:flex;flex-direction:column;align-items:center;gap:10px;width:92%;max-width:560px;text-align:center;}
+#ov-ans{display:none;width:94%;max-height:82%;overflow-y:auto;}
+#ov-ans::-webkit-scrollbar{width:4px;}
+#ov-ans::-webkit-scrollbar-thumb{background:rgba(255,255,255,.3);border-radius:2px;}
+.dropup{display:none;position:absolute;bottom:2px;z-index:40;background:#fff;border:.5px solid #aaa;border-radius:8px;overflow:hidden;min-width:160px;}
+.dropup-item{display:flex;align-items:center;gap:6px;padding:7px 12px;font-size:11px;cursor:pointer;color:#555;}
+.dropup-item:hover{background:#f5f5f5;}
+.dropup-item.active{background:#e6f1fb;color:#185fa5;font-weight:500;}
+.dropup-div{height:.5px;background:#eee;}
+#ds-badge{position:absolute;bottom:8px;left:8px;z-index:10;font-size:10px;background:rgba(255,255,255,.9);border:.5px solid #ddd;border-radius:4px;padding:2px 8px;color:#666;display:flex;align-items:center;gap:4px;}
+/* Modal */
+#modal-bg{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.6);z-index:99;align-items:center;justify-content:center;}
+#modal-bg.open{display:flex;}
+#modal-box{background:#fff;border-radius:12px;padding:22px 24px;width:min(92vw,480px);max-height:90vh;overflow-y:auto;}
+#modal-box h3{font-size:15px;font-weight:500;margin-bottom:12px;color:#111;}
+#modal-box input,#modal-box select{width:100%;font-size:12px;padding:8px 10px;border:.5px solid #ccc;border-radius:6px;background:#f9f9f9;color:#111;margin-bottom:8px;outline:none;}
+#modal-box input:focus{border-color:#378ADD;}
+.mrow{display:flex;gap:8px;margin-top:4px;}
+.mrow button{flex:1;font-size:12px;padding:8px 0;}
+#load-st{font-size:11px;min-height:16px;margin:6px 0;line-height:1.5;}
+#load-st.ok{color:#2E7D32;}
+#load-st.err{color:#D32F2F;}
+.ls-item{display:flex;align-items:center;justify-content:space-between;padding:7px 10px;background:#f5f5f5;border-radius:6px;margin-bottom:6px;}
+.ls-item button{padding:2px 8px;font-size:10px;}
+/* Fullscreen */
+body:fullscreen #app,body:-webkit-full-screen #app{width:100vw;height:100vh;border-radius:0;}
+#fs-fab{position:fixed;bottom:16px;right:16px;z-index:9999;background:rgba(0,0,0,.5);color:#fff;border:1px solid rgba(255,255,255,.3);border-radius:20px;padding:6px 14px;font-size:11px;cursor:pointer;}
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="TR">
+    <canvas id="gc"></canvas>
+    <div style="position:absolute;top:6px;left:8px;display:flex;gap:5px;z-index:10;">
+      <span class="badge" id="ba">왕복 0회</span>
+      <span class="badge" id="bb">1 / 72</span>
+      <span class="badge" id="bc">⏱ 60s</span>
+    </div>
+    <div style="position:absolute;top:6px;right:8px;z-index:10;display:flex;align-items:center;gap:7px;">
+      <div id="dot-area" style="display:flex;gap:3px;align-items:center;"></div>
+      <span id="tlabel" style="font-size:clamp(10px,1.2vw,12px);font-weight:500;color:#666;">시력강화 훈련 · 1단계 가로</span>
+    </div>
+    <div id="SH"></div>
+    <div id="WE"></div>
+    <div id="slots"></div>
+    <div id="ds-badge"><span id="ds-dot" style="color:#378ADD;font-size:8px;">●</span><span id="ds-txt">기본 (내장)</span></div>
+    <!-- Trainer nav -->
+    <div id="nav-trainer" class="dropup" style="right:164px;">
+      <div class="dropup-item active" id="nt0" onclick="switchTM('vision')"><span id="ni0">●</span><span>시력강화 훈련</span></div>
+      <div class="dropup-div"></div>
+      <div class="dropup-item" id="nt1" onclick="switchTM('concentration')"><span id="ni1" style="opacity:.4;">○</span><span>집중력 훈련</span></div>
+      <div class="dropup-div"></div>
+      <div class="dropup-item" id="nt2" onclick="switchTM('memory')"><span id="ni2" style="opacity:.4;">○</span><span>기억력 훈련</span></div>
+      <div class="dropup-div"></div>
+      <div class="dropup-item" id="nt3" onclick="switchTM('sentence')"><span id="ni3" style="opacity:.4;">○</span><span>문장기억 훈련</span></div>
+    </div>
+    <!-- Data nav -->
+    <div id="nav-data" class="dropup" style="right:8px;">
+      <div class="dropup-item" style="color:#888;font-size:10px;" onclick="openModal()"><span>⚙</span><span>Sheets 연동 설정</span></div>
+      <div class="dropup-div"></div>
+      <div class="dropup-item active" id="nd-default" onclick="switchDS('default')"><span id="nd-default-dot">●</span><span>기본 (내장)</span></div>
+      <div class="dropup-div" id="nd-ext-div" style="display:none;"></div>
+      <div id="nd-ext"></div>
+    </div>
+    <!-- Overlay -->
+    <div id="OV">
+      <div id="ov-msg">
+        <p id="ov-t" style="font-size:clamp(14px,2.4vw,21px);font-weight:500;color:#fff;letter-spacing:.05em;"></p>
+        <p id="ov-n" style="font-size:clamp(26px,4.5vw,48px);font-weight:500;color:#fff;line-height:1;min-height:1.1em;"></p>
+        <p id="ov-w" style="display:none;font-size:clamp(20px,3.2vw,34px);font-weight:700;color:#FFE082;font-family:'Malgun Gothic',sans-serif;letter-spacing:.06em;"></p>
+        <p id="ov-s" style="font-size:clamp(11px,1.5vw,13px);color:rgba(255,255,255,.5);"></p>
+        <button id="ov-b" onclick="handleOvBtn()" style="display:none;margin-top:8px;font-size:13px;padding:8px 26px;background:rgba(255,255,255,.15);color:#fff;border-color:rgba(255,255,255,.4);border-radius:8px;"></button>
+      </div>
+      <div id="ov-ans">
+        <p style="font-size:clamp(14px,1.9vw,18px);font-weight:500;color:#fff;text-align:center;margin-bottom:12px;">정답 확인</p>
+        <div id="ov-rows" style="text-align:left;"></div>
+        <div id="ov-ql-title" style="display:none;font-size:13px;color:rgba(255,200,0,.85);font-weight:500;border-top:.5px solid rgba(255,255,255,.2);padding-top:10px;margin:8px 0;"></div>
+        <div id="ov-ql" style="margin-bottom:10px;"></div>
+        <div style="text-align:center;margin-top:12px;"><button onclick="fullReset()" style="font-size:13px;padding:8px 24px;background:rgba(255,255,255,.15);color:#fff;border-color:rgba(255,255,255,.4);border-radius:8px;">훈련 종료</button></div>
+      </div>
+    </div>
+  </div>
+  <!-- Controls bar -->
+  <div id="cbar">
+    <div id="cv" style="display:flex;align-items:center;gap:3px;flex-shrink:0;">
+      <span style="font-size:10px;color:#888;">도형</span>
+      <button id="bsh-c" class="active" onclick="setShape('circle')">원</button>
+      <button id="bsh-d" onclick="setShape('dot')">점</button>
+      <button id="bsh-a" onclick="setShape('alt')">교차</button>
+      <div class="sep"></div>
+      <span style="font-size:10px;color:#888;">점멸</span>
+      <button id="bbc1" class="active" onclick="setBC(1)">1</button>
+      <button id="bbc2" onclick="setBC(2)">2</button>
+      <button id="bbc3" onclick="setBC(3)">3</button>
+    </div>
+    <div id="cw" style="display:none;align-items:center;gap:3px;flex-shrink:0;">
+      <span id="wl-label" style="font-size:10px;color:#888;">글자</span>
+      <button id="bwl2" class="active" onclick="setWL(2)">2</button>
+      <button id="bwl3" onclick="setWL(3)">3</button>
+      <button id="bwl4" onclick="setWL(4)">4</button>
+      <button id="bwl5" onclick="setWL(5)">5</button>
+      <button id="bwl6" onclick="setWL(6)">6</button>
+      <div class="sep"></div>
+      <span style="font-size:10px;color:#888;">수준</span>
+      <button id="blv하" class="active" onclick="setLV('하')">하</button>
+      <button id="blv중" onclick="setLV('중')">중</button>
+      <button id="blv상" onclick="setLV('상')">상</button>
+    </div>
+    <div class="sep"></div>
+    <span style="font-size:10px;color:#888;flex-shrink:0;">속도</span>
+    <input id="spsl" type="range" min="1" max="5" step="1" value="3" oninput="setSP(this.value)">
+    <span id="splb" style="font-size:10px;font-weight:500;flex-shrink:0;min-width:44px;">보통</span>
+    <div class="sep"></div>
+    <button id="btn-st" onclick="toggleStart()" style="padding:2px 10px;">시작</button>
+    <button onclick="fullReset()">초기화</button>
+    <div class="sep"></div>
+    <button onclick="toggleNav('trainer',event)" style="display:flex;align-items:center;gap:2px;"><span id="tnlbl">시력강화 훈련</span><span style="font-size:8px;">▲</span></button>
+    <div class="sep"></div>
+    <button onclick="toggleNav('data',event)" style="display:flex;align-items:center;gap:2px;"><span id="dslbl">데이터 ▲</span></button>
+    <div class="sep"></div>
+    <button onclick="toggleFS()" id="fsbtn" title="전체화면 (F11)">⛶</button>
+  </div>
+</div>
+
+<!-- Sheets Modal -->
+<div id="modal-bg">
+  <div id="modal-box">
+    <h3>📊 Sheets 연동 설정</h3>
+
+    <div style="background:#E8F5E9;border:.5px solid #A5D6A7;border-radius:6px;padding:10px 12px;margin-bottom:12px;font-size:11px;color:#1B5E20;line-height:1.8;">
+      <b>💾 저장소: IndexedDB</b> — 용량 제한 없음, 기기에 영구 보관<br>
+      <b>⚠ 중요:</b> 이 기능은 <b>로컬 HTML 파일</b>을 브라우저로 열었을 때만 작동합니다.<br>
+      (claude.ai 화면에서는 보안 정책으로 외부 연결이 차단됩니다)
+    </div>
+
+    <div style="background:#FFF8E1;border:.5px solid #FFE082;border-radius:6px;padding:10px 12px;margin-bottom:12px;font-size:11px;color:#6D4C00;line-height:1.8;">
+      <b>시트 게시 방법:</b><br>
+      1. 스프레드시트 → <b>파일 → 공유 → 웹에 게시</b><br>
+      2. 시트 선택 → 형식: <b>쉼표로 구분된 값(.csv)</b> → <b>게시</b><br>
+      3. 생성된 URL 복사 후 아래에 붙여넣기
+    </div>
+
+    <div style="background:#E3F2FD;border:.5px solid #90CAF9;border-radius:6px;padding:10px 12px;margin-bottom:14px;font-size:11px;color:#0D47A1;line-height:1.8;">
+      <b>통합 시트 구조 (낱말+문장 한 시트):</b><br>
+      A열: 내용 &nbsp;|&nbsp; B열: 종류 (<b>낱말</b> 또는 <b>문장</b>) &nbsp;|&nbsp; C열: 수준 (<b>하/중/상</b>)<br>
+      시트 이름을 <b>ko_general</b>, <b>ko_bible</b>, <b>en_general</b> 등으로 설정하면<br>
+      데이터 목록에 <b>ko_general(확장)</b> 형식으로 자동 생성됩니다.
+    </div>
+
+    <label style="font-size:11px;color:#666;display:block;margin-bottom:4px;">게시된 URL (시트 이름이 URL에 포함되면 자동으로 이름 생성)</label>
+    <input id="sh-puburl" placeholder="https://docs.google.com/spreadsheets/d/.../pub?...&sheet=ko_bible">
+    <div id="load-st"></div>
+    <div class="mrow">
+      <button onclick="loadSheet()" style="background:#378ADD;color:#fff;border-color:#378ADD;border-radius:6px;">불러오기 &amp; 저장</button>
+      <button onclick="closeModal()" style="border-radius:6px;">닫기</button>
+    </div>
+
+    <div style="margin-top:16px;border-top:.5px solid #eee;padding-top:14px;">
+      <p style="font-size:12px;font-weight:500;color:#444;margin-bottom:8px;">💾 저장된 확장 데이터</p>
+      <div id="ls-list"></div>
+    </div>
+  </div>
+</div>
+
+<button id="fs-fab" onclick="toggleFS()">⛶ 전체화면</button>
+
+<script>
+/* ══════════════════════════════════════════
+   기본(내장) 데이터 — 2회 훈련 분량만
+══════════════════════════════════════════ */
+const BUILT_IN={
+  wordPool:[
+    /* 2글자 */
+    '사랑','행복','바람','하늘','나무','구름','노래','꽃잎','눈물','미소',
+    '희망','겨울','여름','가을','바다','강물','태양','달빛','새벽','저녁',
+    /* 3글자 */
+    '어머니','아버지','할머니','봄바람','여름날','가을빛','오솔길','무지개','꽃향기','은하수',
+    /* 4글자 */
+    '산들바람','새벽이슬','저녁노을','봄바람에','가을하늘','겨울바람','파란하늘','하얀구름',
+    /* 5글자 */
+    '사랑스러운','행복가득해','바람이불어','하늘을보며','나무그늘에','구름이흘러',
+    /* 6글자 */
+    '사랑스러운데','행복가득하다','바람이살랑대','하늘을바라봐','나무그늘아래','봄바람이불어'
+  ],
+  sentPool:[
+    {t:'봄비가 살며시 내립니다',lv:'하'},
+    {t:'달빛이 환하게 빛납니다',lv:'하'},
+    {t:'강물이 졸졸 흐릅니다',lv:'하'},
+    {t:'단풍이 붉게 물듭니다',lv:'하'},
+    {t:'바람이 불어와 나뭇잎이 흔들립니다',lv:'중'},
+    {t:'달빛이 고요한 밤을 은빛으로 밝힙니다',lv:'중'},
+    {t:'봄날 벚꽃이 바람에 하늘하늘 흩날립니다',lv:'중'},
+    {t:'꽃향기가 바람을 타고 멀리 퍼져갑니다',lv:'중'},
+    {t:'봄비가 살며시 내리면 온 들판이 초록빛으로 물듭니다',lv:'상'},
+    {t:'달빛이 고요한 밤 하늘을 은빛으로 아름답게 밝힙니다',lv:'상'}
+  ]
+};
+
+/* ══════════════════════════════════════════
+   IndexedDB — 용량 무제한
+══════════════════════════════════════════ */
+const DB_NAME='JSTrainerDB',DB_VER=1,STORE='sheets';
+let _db=null;
+function openDB(){
+  return new Promise((res,rej)=>{
+    if(_db){res(_db);return;}
+    const req=indexedDB.open(DB_NAME,DB_VER);
+    req.onupgradeneeded=e=>{e.target.result.createObjectStore(STORE,{keyPath:'label'});};
+    req.onsuccess=e=>{_db=e.target.result;res(_db);};
+    req.onerror=e=>rej(e.target.error);
+  });
+}
+async function idbSave(label,data){
+  const db=await openDB();
+  return new Promise((res,rej)=>{
+    const tx=db.transaction(STORE,'readwrite');
+    tx.objectStore(STORE).put({label,...data});
+    tx.oncomplete=()=>res();tx.onerror=e=>rej(e.target.error);
+  });
+}
+async function idbLoadAll(){
+  const db=await openDB();
+  return new Promise((res,rej)=>{
+    const req=db.transaction(STORE,'readonly').objectStore(STORE).getAll();
+    req.onsuccess=e=>{
+      const map={};
+      (e.target.result||[]).forEach(item=>{const{label,...d}=item;map[label]=d;});
+      res(map);
+    };
+    req.onerror=e=>rej(e.target.error);
+  });
+}
+async function idbRemove(label){
+  const db=await openDB();
+  return new Promise((res,rej)=>{
+    const tx=db.transaction(STORE,'readwrite');
+    tx.objectStore(STORE).delete(label);
+    tx.oncomplete=()=>res();tx.onerror=e=>rej(e.target.error);
+  });
+}
+
+/* ══════════════════════════════════════════
+   Runtime store
+══════════════════════════════════════════ */
+let sheetsData={};
+let activeDS='default';
+
+async function initDB(){
+  try{sheetsData=await idbLoadAll();renderNavDS();}
+  catch(e){console.warn('IndexedDB 로드 실패',e);}
+}
+
+/* ══════════════════════════════════════════
+   데이터 헬퍼 — 런타임 글자수 필터
+══════════════════════════════════════════ */
+function getPool(){
+  if(activeDS==='default')return BUILT_IN;
+  return sheetsData[activeDS]||{wordPool:[],sentPool:[]};
+}
+function gWords(){return(getPool().wordPool||[]).filter(w=>w.replace(/\s/g,'').length===wl);}
+function gSents(){return(getPool().sentPool||[]).filter(s=>s.lv===lv).map(s=>s.t);}
+function pWord(){
+  const db=gWords();if(!db.length)return'(없음)';
+  if(usedW.size>db.length*.75)usedW.clear();
+  let w,tr=0;do{w=db[Math.floor(Math.random()*db.length)];tr++;}while(usedW.has(w)&&tr<30);
+  usedW.add(w);return w;
+}
+function pSents(n){
+  const db=gSents();if(usedSents.size+n>db.length)usedSents.clear();
+  const arr=[];
+  for(let i=0;i<n;i++){let s,tr=0;do{s=db[Math.floor(Math.random()*db.length)];tr++;}while((usedSents.has(s)||arr.includes(s))&&tr<50);usedSents.add(s);arr.push(s);}
+  return arr;
+}
+
+/* ══════════════════════════════════════════
+   URL에서 시트 이름 추출 → 라벨 자동 생성
+══════════════════════════════════════════ */
+function extractLabel(url){
+  try{
+    const u=new URL(url);
+    /* ?sheet=ko_bible 파라미터 */
+    const sheetParam=u.searchParams.get('sheet')||u.searchParams.get('range')||'';
+    if(sheetParam)return sheetParam.replace(/[^a-zA-Z0-9_가-힣]/g,'_');
+    /* gid 파라미터만 있을 경우 */
+    const gid=u.searchParams.get('gid')||'';
+    const id=u.pathname.match(/\/d\/([^/]+)/)?.[1]?.slice(0,6)||'data';
+    return gid?`sheet_${gid}`:`data_${id}`;
+  }catch{return'확장데이터';}
+}
+
+/* ══════════════════════════════════════════
+   통합 CSV 파서 (A=내용, B=종류, C=수준)
+══════════════════════════════════════════ */
+function parseUnifiedCSV(csv){
+  const rows=csv.trim().split('\n');
+  const isHeader=rows[0]&&(rows[0].toLowerCase().includes('내용')||rows[0].toLowerCase().includes('낱말')||rows[0].toLowerCase().includes('word'));
+  const dataRows=isHeader?rows.slice(1):rows;
+  const wordPool=[],sentPool=[];
+  dataRows.forEach(r=>{
+    const cols=r.split(',').map(x=>x.replace(/^"|"$/g,'').trim());
+    const content=cols[0];const kind=(cols[1]||'').trim();const level=(cols[2]||'중').trim();
+    if(!content)return;
+    const isWord=kind==='낱말'||kind==='word'||kind==='w'||kind==='단어';
+    const isSent=kind==='문장'||kind==='sentence'||kind==='s';
+    if(isWord){
+      const len=content.replace(/\s/g,'').length;
+      if(len>=2&&len<=6&&!wordPool.includes(content))wordPool.push(content);
+    }else if(isSent){
+      if(!sentPool.find(s=>s.t===content))sentPool.push({t:content,lv:level});
+    }else{
+      /* 종류 미입력 시 글자 수로 자동 판별 */
+      const len=content.replace(/\s/g,'').length;
+      const wc=content.split(' ').length;
+      if(len<=6&&wc===1){if(!wordPool.includes(content))wordPool.push(content);}
+      else{if(!sentPool.find(s=>s.t===content))sentPool.push({t:content,lv:level});}
+    }
+  });
+  return{wordPool,sentPool};
+}
+
+/* ══════════════════════════════════════════
+   Sheets 로더
+══════════════════════════════════════════ */
+async function loadSheet(){
+  const url=document.getElementById('sh-puburl').value.trim();
+  const st=document.getElementById('load-st');
+  if(!url){st.textContent='URL을 입력하세요';st.className='err';return;}
+
+  /* 로컬 파일 환경 확인 */
+  if(location.protocol==='about:'||location.href.includes('claude.ai')||location.hostname){
+    if(!location.protocol.startsWith('file')){
+      st.innerHTML='⚠ 현재 claude.ai 화면에서는 외부 연결이 차단됩니다.<br><b>JS_집중력기억력_향상훈련.html 파일을 다운로드</b>한 후<br>브라우저로 직접 열어서 사용하세요.';
+      st.className='err';return;
+    }
+  }
+
+  const label=extractLabel(url);
+  const displayLabel=label+'(확장)';
+  st.textContent='불러오는 중...';st.className='';
+  let fetchUrl=url;
+  if(!fetchUrl.includes('output=csv')){
+    fetchUrl+=fetchUrl.includes('?')?'&output=csv':'?output=csv';
+  }
+  try{
+    const res=await fetch(fetchUrl,{cache:'no-cache'});
+    if(!res.ok)throw new Error('HTTP '+res.status);
+    const csv=await res.text();
+    if(csv.trim().startsWith('<'))throw new Error('"웹에 게시 → CSV 형식" 설정을 확인하세요');
+    st.textContent='파싱 중...';st.className='';
+    await new Promise(r=>setTimeout(r,10));
+    const data=parseUnifiedCSV(csv);
+    sheetsData[displayLabel]=data;
+    await idbSave(displayLabel,data);
+    st.innerHTML=`✓ <b>${displayLabel}</b> 저장 완료<br>낱말 ${data.wordPool.length.toLocaleString()}개 / 문장 ${data.sentPool.length.toLocaleString()}개`;
+    st.className='ok';
+    renderLS();renderNavDS();
+  }catch(e){
+    st.textContent='오류: '+e.message;st.className='err';
+  }
+}
+
+/* ══════════════════════════════════════════
+   Modal & Nav DS
+══════════════════════════════════════════ */
+function renderLS(){
+  const el=document.getElementById('ls-list');
+  const keys=Object.keys(sheetsData);
+  if(!keys.length){el.innerHTML='<p style="font-size:11px;color:#aaa;margin:4px 0;">저장된 확장 데이터 없음</p>';return;}
+  el.innerHTML=keys.map(k=>`
+    <div class="ls-item">
+      <div>
+        <span style="font-size:12px;font-weight:500;">${k}</span><br>
+        <span style="font-size:11px;color:#888;">낱말 ${(sheetsData[k].wordPool||[]).length.toLocaleString()}개 · 문장 ${(sheetsData[k].sentPool||[]).length.toLocaleString()}개</span>
+      </div>
+      <button onclick="removeLS('${k}')">삭제</button>
+    </div>`).join('');
+}
+async function removeLS(k){
+  delete sheetsData[k];await idbRemove(k);
+  if(activeDS===k)switchDS('default');
+  renderLS();renderNavDS();
+}
+function renderNavDS(){
+  const extEl=document.getElementById('nd-ext');
+  const divEl=document.getElementById('nd-ext-div');
+  const keys=Object.keys(sheetsData);
+  divEl.style.display=keys.length?'block':'none';
+  extEl.innerHTML=keys.map(k=>`
+    <div class="dropup-item${activeDS===k?' active':''}" onclick="switchDS('${k}')">
+      <span${activeDS===k?'':' style="opacity:.4;"'}>${activeDS===k?'●':'○'}</span>
+      <span>${k}</span>
+    </div>
+    <div class="dropup-div"></div>`).join('');
+}
+function openModal(){closeNav();document.getElementById('modal-bg').classList.add('open');renderLS();}
+function closeModal(){document.getElementById('modal-bg').classList.remove('open');}
+document.getElementById('modal-bg').addEventListener('click',e=>{if(e.target===document.getElementById('modal-bg'))closeModal();});
+
+/* ══════════════════════════════════════════
+   Fullscreen
+══════════════════════════════════════════ */
+function toggleFS(){
+  if(!document.fullscreenElement&&!document.webkitFullscreenElement){
+    const el=document.documentElement;
+    (el.requestFullscreen||el.webkitRequestFullscreen||el.mozRequestFullScreen||el.msRequestFullscreen).call(el).catch(()=>{});
+  }else{
+    (document.exitFullscreen||document.webkitExitFullscreen||document.mozCancelFullScreen).call(document);
+  }
+}
+function onFSChange(){
+  const isFS=!!(document.fullscreenElement||document.webkitFullscreenElement);
+  document.getElementById('fsbtn').textContent=isFS?'✕':'⛶';
+  document.getElementById('fs-fab').style.display=isFS?'none':'block';
+  const app=document.getElementById('app');
+  if(isFS){app.style.width='100vw';app.style.height='100vh';app.style.borderRadius='0';}
+  else{app.style.width='';app.style.height='';app.style.borderRadius='10px';}
+  setTimeout(()=>{
+    upDims();drawGrid();
+    if(TM==='sentence'&&(tState==='idle'||tState==='paused')){buildSlots();if(tState==='paused'&&currentSents.length)for(let i=0;i<wl;i++)loadSlot(i,currentSents[i]||'');}
+    if(tState==='running'||tState==='paused'){
+      if(TM==='vision'){apSh();plSh(posIdx);apCl(curColor);}
+      else if(TM==='concentration'||TM==='memory'){const{x,y}=gXY(posIdx);WE.style.left=x+'px';WE.style.top=y+'px';WE.style.fontSize=lay.fs+'px';}
+    }
+  },150);
+}
+document.addEventListener('fullscreenchange',onFSChange);
+document.addEventListener('webkitfullscreenchange',onFSChange);
+document.addEventListener('keydown',e=>{if(e.key==='F11'){e.preventDefault();toggleFS();}});
+
+/* ══════════════════════════════════════════
+   상수 & 상태
+══════════════════════════════════════════ */
+const ROWS=6,CF=1.12,TOP=0.15,BOT=0.10;
+const COLORS=[{fill:'#111',border:'#000'},{fill:'#D32F2F',border:'#B71C1C'},{fill:'#1565C0',border:'#0D47A1'},{fill:'#2E7D32',border:'#1B5E20'}];
+const SPD={1:{ms:950,l:'매우 느림'},2:{ms:700,l:'느림'},3:{ms:450,l:'보통'},4:{ms:250,l:'빠름'},5:{ms:100,l:'매우 빠름'}};
+const PH=[{label:'1단계 가로',mode:'h'},{label:'2단계 세로',mode:'v'},{label:'3단계 랜덤',mode:'r'}];
+const V_DUR=[60,60,90],C_DUR=[60,60,60];
+const LV_CONC={'하':[1,3],'중':[3,5],'상':[5,7]};
+const LV_MEM={'하':[2,3],'중':[3,4],'상':[4,5]};
+const LV_WG={'하':1,'중':2,'상':3};
+const REST=10,TOTAL_RDS=10,MEM_CYCLES=3,DELAY2S=2000,SENT_GAP=2000;
+const TM_NAMES={vision:'시력강화 훈련',concentration:'집중력 훈련',memory:'기억력 훈련',sentence:'문장기억 훈련'};
+
+let TM='vision',COLS=12,TOTAL=72;
+let spd=3,tState='idle',phase=0;
+let tId=null,bId=null,cdId=null,riId=null;
+let navOpen=null,aC=null,lay={mx:30,fs:14};
+let shape='circle',alt=false,bc=1,curColor=COLORS[0],posIdx=0,moveDir=1,counter=0,remSec=60;
+let wl=2,lv='하',stepN=0,repSteps=new Set(),inRep=false,lastW=null,repAll=[[],[],[]],usedW=new Set();
+let mRound=0,mCycle=0,mWIdx=0,roundWords=[],allRoundWords=[];
+let curSentIdx=0,currentSents=[],allRoundData=[],usedSents=new Set(),slotWordSpans=[];
+
+const TR=document.getElementById('TR'),CNV=document.getElementById('gc');
+const SH=document.getElementById('SH'),WE=document.getElementById('WE');
+const OV=document.getElementById('OV'),slotsEl=document.getElementById('slots');
+
+/* ══ Audio ══ */
+function gAC(){if(!aC)aC=new(window.AudioContext||window.webkitAudioContext)();if(aC.state==='suspended')aC.resume();return aC;}
+function ding(){try{const c=gAC(),t=c.currentTime;[{f:880,d:.95,s:0},{f:660,d:1.5,s:.48}].forEach(({f,d,s})=>{const o=c.createOscillator(),g=c.createGain();o.connect(g);g.connect(c.destination);o.type='sine';o.frequency.value=f;g.gain.setValueAtTime(0,t+s);g.gain.linearRampToValueAtTime(.45,t+s+.08);g.gain.exponentialRampToValueAtTime(.001,t+s+d);o.start(t+s);o.stop(t+s+d);});}catch(e){}}
+
+/* ══ Grid ══ */
+function upLay(){
+  const W=TR.offsetWidth,H=TR.offsetHeight||300;if(!W)return;
+  const fsByW=(W*.82-12)/(wl*CF*(COLS-.14));
+  const fsByH=H*0.10;
+  const fs=Math.max(9,Math.floor(Math.min(fsByW,fsByH)));
+  lay={mx:Math.ceil(wl*CF*fs/2)+8,fs};
+}
+function upDims(){if(TM==='vision')COLS=12;else if(TM==='sentence')COLS=12;else COLS=wl<=2?12:wl<=3?10:wl<=4?8:wl<=5?7:6;TOTAL=ROWS*COLS;if(TM!=='vision')upLay();}
+function getMX(){return TM==='vision'?TR.offsetWidth*0.05:lay.mx;}
+function rcOf(pi){const m=TM==='memory'?'r':PH[phase].mode;if(m==='h'){const r=Math.floor(pi/COLS),c=pi%COLS;return{row:r,col:(r%2===0)?c:(COLS-1-c)};}if(m==='v'){const col=Math.floor(pi/ROWS),r=pi%ROWS;return{row:(col%2===0)?r:(ROWS-1-r),col};}return{row:Math.floor(pi/COLS),col:pi%COLS};}
+function gXY(pi){const W=TR.offsetWidth,H=TR.offsetHeight;if(!W||!H)return{x:0,y:0};const mx=getMX(),tY=H*TOP,bY=H*(1-BOT),{row,col}=rcOf(pi);return{x:mx+col*(W-2*mx)/(COLS-1),y:tY+row*(bY-tY)/(ROWS-1)};}
+function gXYrc(r,c){const W=TR.offsetWidth,H=TR.offsetHeight,mx=getMX(),tY=H*TOP,bY=H*(1-BOT);return{x:mx+c*(W-2*mx)/(COLS-1),y:tY+r*(bY-tY)/(ROWS-1)};}
+function drawGrid(){
+  const W=TR.offsetWidth,H=TR.offsetHeight;if(!W||!H)return;
+  if(TM!=='vision')upLay();
+  CNV.width=W;CNV.height=H;const ctx=CNV.getContext('2d');ctx.clearRect(0,0,W,H);
+  if(TM==='sentence'){slotsEl.style.display='block';return;}
+  slotsEl.style.display='none';
+  const m=TM==='memory'?'r':PH[phase].mode;
+  if(m==='h'){for(let r=0;r<ROWS;r++){const{x:x1,y}=gXYrc(r,0),{x:x2}=gXYrc(r,COLS-1);ctx.beginPath();ctx.moveTo(x1,y);ctx.lineTo(x2,y);ctx.strokeStyle='rgba(140,140,140,.15)';ctx.lineWidth=.5;ctx.stroke();}}
+  else if(m==='v'){for(let c=0;c<COLS;c++){const{x,y:y1}=gXYrc(0,c),{y:y2}=gXYrc(ROWS-1,c);ctx.beginPath();ctx.moveTo(x,y1);ctx.lineTo(x,y2);ctx.strokeStyle='rgba(140,140,140,.15)';ctx.lineWidth=.5;ctx.stroke();}}
+  for(let pi=0;pi<TOTAL;pi++){const{x,y}=gXY(pi);ctx.beginPath();ctx.arc(x,y,1.5,0,Math.PI*2);ctx.fillStyle='rgba(140,140,140,.25)';ctx.fill();}
+}
+
+/* ══ Vision ══ */
+function pClr(){return COLORS[Math.floor(Math.random()*COLORS.length)];}
+function shSz(){const H=TR.offsetHeight||300;const big=Math.max(14,Math.floor(H*0.065));const small=Math.max(7,Math.floor(H*0.032));return(shape==='dot'||(shape==='alt'&&alt))?small:big;}
+function apSh(){const sz=shSz();SH.style.width=sz+'px';SH.style.height=sz+'px';SH.style.borderRadius='50%';}
+function apCl(c){SH.style.background=c.fill;SH.style.border='.5px solid '+c.border;}
+function plSh(pi){const{x,y}=gXY(pi);SH.style.left=x+'px';SH.style.top=y+'px';SH.style.opacity='1';}
+function vBlink(cb){const half=Math.max(18,SPD[spd].ms/(bc*2));let done=0,st=true;SH.style.opacity='1';if(shape==='alt'){alt=!alt;apSh();}apCl(curColor);function tk(){st=!st;SH.style.opacity=st?'1':'0';if(!st)done++;if(done>=bc){bId=null;cb();}else bId=setTimeout(tk,half);}bId=setTimeout(tk,half);}
+function vAdvPos(){const m=PH[phase].mode;if(m==='r'){let nx;do{nx=Math.floor(Math.random()*TOTAL);}while(nx===posIdx&&TOTAL>1);posIdx=nx;}else{posIdx+=moveDir;if(posIdx>=TOTAL){moveDir=-1;posIdx=TOTAL-2;counter++;}else if(posIdx<0){moveDir=1;posIdx=1;counter++;}}}
+function vStep(){curColor=pClr();plSh(posIdx);apCl(curColor);updB();vBlink(()=>{if(tState!=='running')return;vAdvPos();tId=setTimeout(vStep,25);});}
+
+/* ══ Concentration ══ */
+function initRep(){const[mn,mx]=LV_CONC[lv];const n=mn+Math.floor(Math.random()*(mx-mn+1));const est=Math.max(20,Math.floor(C_DUR[phase]*1000/SPD[spd].ms));repSteps=new Set();const lo=Math.ceil(est*.08)+1,hi=Math.floor(est*.88)-1;let tr=0;while(repSteps.size<n&&tr<2000){const s=lo+Math.floor(Math.random()*(hi-lo+1));if(!repSteps.has(s-1)&&!repSteps.has(s)&&!repSteps.has(s+1))repSteps.add(s);tr++;}inRep=false;lastW=null;stepN=0;usedW.clear();}
+function gWord(){stepN++;if(inRep){inRep=false;repAll[phase].push(lastW);return lastW;}let w,tr=0;do{w=pWord();tr++;}while(w===lastW&&tr<10);lastW=w;if(repSteps.has(stepN))inRep=true;return w;}
+function cAdvPos(){const m=PH[phase].mode;if(m==='r'){let nx;do{nx=Math.floor(Math.random()*TOTAL);}while(nx===posIdx&&TOTAL>1);posIdx=nx;}else{posIdx+=moveDir;if(posIdx>=TOTAL){moveDir=-1;posIdx=TOTAL-2;counter++;}else if(posIdx<0){moveDir=1;posIdx=1;counter++;}}}
+function cStep(){const word=gWord(),{x,y}=gXY(posIdx);WE.style.left=x+'px';WE.style.top=y+'px';WE.textContent=word;WE.style.fontSize=lay.fs+'px';WE.style.opacity='1';counter++;updB();bId=setTimeout(()=>{WE.style.opacity='0';setTimeout(()=>{if(tState!=='running')return;cAdvPos();tId=setTimeout(cStep,30);},45);},SPD[spd].ms);}
+
+/* ══ Memory ══ */
+function pickMWords(n){const db=gWords();if(usedW.size>db.length*.75)usedW.clear();const arr=[];for(let i=0;i<n;i++){let w,tr=0;do{w=db[Math.floor(Math.random()*db.length)];tr++;}while((usedW.has(w)||arr.includes(w))&&tr<30);usedW.add(w);arr.push(w);}return arr;}
+function pickMPos(n){const area=Math.floor(TOTAL/n);const pos=[];for(let i=0;i<n;i++){let p=i*area+Math.floor(Math.random()*area);p=Math.min(p,TOTAL-1);let tr=0;while(pos.some(q=>Math.abs(q-p)<Math.floor(TOTAL/n/2))&&tr<20){p=Math.floor(Math.random()*TOTAL);tr++;}pos.push(p);}return pos;}
+function setupMRound(){const[mn,mx]=LV_MEM[lv];const n=mn+Math.floor(Math.random()*(mx-mn+1));const words=pickMWords(n);const pos=pickMPos(n);roundWords=words.map((w,i)=>({word:w,posIdx:pos[i]}));allRoundWords[mRound]=words;updMB();}
+function mStep(){if(tState!=='running')return;if(mWIdx>=roundWords.length){mCycle++;mWIdx=0;updMB();if(mCycle>=MEM_CYCLES){endMRound();return;}tId=setTimeout(mStep,350);return;}const{word,posIdx:pi}=roundWords[mWIdx];const{x,y}=gXY(pi);WE.style.left=x+'px';WE.style.top=y+'px';WE.textContent=word;WE.style.fontSize=lay.fs+'px';WE.style.opacity='1';bId=setTimeout(()=>{WE.style.opacity='0';mWIdx++;tId=setTimeout(mStep,180);},SPD[spd].ms);}
+
+/* ══ Sentence ══ */
+function getSMM(){const H=TR.offsetHeight||200,W=TR.offsetWidth||400,n=wl,tY=H*TOP,bY=H*(1-BOT),usableH=bY-tY,gap=Math.max(4,Math.floor(usableH*.025)),slotH=Math.floor((usableH-(n-1)*gap)/n),slotX=W*.05,slotW=W*.90,numW=Math.max(26,slotH*.8),fs=Math.max(10,Math.floor(slotH*.42)),numFs=Math.max(10,Math.floor(slotH*.34)),wordGap=Math.max(4,Math.floor(fs*.55));return{tY,gap,slotH,slotX,slotW,numW,fs,numFs,wordGap,n};}
+function buildSlots(){slotsEl.innerHTML='';slotWordSpans=[];const m=getSMM();for(let i=0;i<m.n;i++){const y=m.tY+i*(m.slotH+m.gap);const div=document.createElement('div');div.id='slot-'+i;div.style.cssText=`position:absolute;left:${m.slotX}px;top:${y}px;width:${m.slotW}px;height:${m.slotH}px;background:#fff;border:.5px solid #ddd;border-radius:8px;display:flex;align-items:center;box-sizing:border-box;overflow:hidden;transition:border-color .2s;`;const num=document.createElement('span');num.style.cssText=`min-width:${m.numW}px;height:100%;display:flex;align-items:center;justify-content:center;font-size:${m.numFs}px;font-weight:500;color:#999;border-right:.5px solid #eee;flex-shrink:0;`;num.textContent=i+1;div.appendChild(num);const wc=document.createElement('div');wc.id='wc-'+i;wc.style.cssText=`flex:1;display:flex;flex-wrap:wrap;align-items:center;justify-content:flex-start;gap:0 ${m.wordGap}px;padding:0 12px;`;div.appendChild(wc);slotsEl.appendChild(div);slotWordSpans.push([]);}}
+function loadSlot(si,sent){const wc=document.getElementById('wc-'+si);if(!wc)return;wc.innerHTML='';slotWordSpans[si]=[];if(!sent)return;const m=getSMM();sent.split(' ').forEach(w=>{const sp=document.createElement('span');sp.textContent=w;sp.style.cssText=`font-family:'Malgun Gothic','Apple SD Gothic Neo','Noto Sans KR',sans-serif;font-weight:600;font-size:${m.fs}px;color:#111;opacity:0;letter-spacing:.02em;white-space:nowrap;`;wc.appendChild(sp);slotWordSpans[si].push(sp);});}
+function revGrp(si,st,cnt){const spans=slotWordSpans[si];if(!spans)return;spans.forEach((sp,i)=>{sp.style.opacity=(i>=st&&i<st+cnt)?'1':'0';});}
+function hideSlot(si){const spans=slotWordSpans[si];if(!spans)return;spans.forEach(sp=>{sp.style.opacity='0';});}
+function setSlotActive(idx,on){const el=document.getElementById('slot-'+idx);if(!el)return;el.style.borderColor=on?'#378ADD':'#ddd';el.style.borderWidth=on?'1.5px':'.5px';}
+function showWGrps(si,total,gs,gst,onDone){if(tState!=='running'){onDone();return;}if(gst>=total){hideSlot(si);onDone();return;}revGrp(si,gst,gs);bId=setTimeout(()=>{revGrp(si,-1,0);tId=setTimeout(()=>showWGrps(si,total,gs,gst+gs,onDone),140);},SPD[spd].ms);}
+function displaySent(idx,onDone){if(tState!=='running'){onDone();return;}curSentIdx=idx;updSB();setSlotActive(idx,true);const words=currentSents[idx].split(' '),gs=LV_WG[lv];showWGrps(idx,words.length,gs,0,()=>{setSlotActive(idx,false);if(tState!=='running'){onDone();return;}if(idx<wl-1){tId=setTimeout(()=>displaySent(idx+1,onDone),SENT_GAP);}else{onDone();}});}
+
+/* ══ Phase / Round ══ */
+function startPhase(){upDims();posIdx=0;moveDir=1;counter=0;stepN=0;inRep=false;lastW=null;remSec=(TM==='vision'?V_DUR:C_DUR)[phase];updPhUI();drawGrid();updTimerB();updB();if(TM==='concentration')initRep();ding();tState='running';document.getElementById('btn-st').textContent='일시정지';startCD();if(TM==='vision')vStep();else cStep();}
+function startMRound(){upDims();mCycle=0;mWIdx=0;usedW.clear();setupMRound();drawGrid();ding();tState='running';document.getElementById('btn-st').textContent='일시정지';tId=setTimeout(mStep,DELAY2S);}
+function startSRound(){currentSents=pSents(wl);const si=Math.floor(Math.random()*wl);const words=currentSents[si].split(' ');const quiz={word:words[Math.floor(Math.random()*words.length)],sentIdx:si};allRoundData[mRound]={sents:[...currentSents],quiz};buildSlots();for(let i=0;i<wl;i++)loadSlot(i,currentSents[i]);updSB();updDotArea();ding();tState='running';document.getElementById('btn-st').textContent='일시정지';tId=setTimeout(()=>displaySent(0,endSDisplay),DELAY2S);}
+function stopAll(){clearTimeout(tId);clearTimeout(bId);clearInterval(cdId);clearInterval(riId);}
+function endPhase(){tState='thinking';stopAll();SH.style.opacity='0';WE.style.opacity='0';ding();if(TM==='vision')setTimeout(()=>showRestOv(phase>=2),650);else setTimeout(showThink,650);}
+function endMRound(){tState='thinking';stopAll();WE.style.opacity='0';ding();setTimeout(showThink,650);}
+function endSDisplay(){if(tState!=='running')return;for(let i=0;i<wl;i++){hideSlot(i);setSlotActive(i,false);}tState='thinking';ding();setTimeout(showThink,650);}
+function startCD(){clearInterval(cdId);cdId=setInterval(()=>{remSec--;updTimerB();if(remSec<=0){clearInterval(cdId);endPhase();}},1000);}
+
+/* ══ Overlays ══ */
+function showOvSm(){document.getElementById('ov-msg').style.display='flex';document.getElementById('ov-ans').style.display='none';}
+function setOv(t,n,w,s,b){document.getElementById('ov-t').textContent=t;document.getElementById('ov-n').textContent=n||'';const wEl=document.getElementById('ov-w');if(w){wEl.textContent=w;wEl.style.display='block';}else wEl.style.display='none';document.getElementById('ov-s').textContent=s||'';const ob=document.getElementById('ov-b');if(b){ob.textContent=b;ob.style.display='block';}else ob.style.display='none';}
+function showRestOv(isLast){showOvSm();setOv(isLast?'모든 훈련이 완료되었습니다':'잠시 눈을 감고 쉬어주세요',REST,null,isLast?'10초 후 종료됩니다':'10초 후 '+PH[phase+1].label+'이(가) 시작됩니다',null);OV.style.display='flex';let s=REST;riId=setInterval(()=>{s--;document.getElementById('ov-n').textContent=s;if(s<=0){clearInterval(riId);OV.style.display='none';if(isLast)fullReset();else{phase++;startPhase();}}},1000);}
+function showThink(){showOvSm();const isRD=TM==='memory'||TM==='sentence';const lbl=isRD?`라운드 ${mRound+1}/${TOTAL_RDS}`:`단계 ${phase+1}/3`;setOv('잠시 눈을 감고 생각하세요',REST,null,lbl,null);OV.style.display='flex';let s=REST;riId=setInterval(()=>{s--;document.getElementById('ov-n').textContent=s;if(s<=0){clearInterval(riId);showWrite();}},1000);}
+function showWrite(){ding();tState='writing';const isRD=TM==='memory'||TM==='sentence';const isLast=isRD?(mRound>=TOTAL_RDS-1):(phase>=2);if(TM==='sentence'){const qData=allRoundData[mRound]?.quiz;setOv('다음 낱말은 몇 번에서 나왔나요?','',qData?'"'+qData.word+'"':'',isLast?'모든 라운드가 완료되었습니다':'준비되면 다음 라운드를 시작하세요',isLast?'정답 확인':'다음 라운드 →');}else{setOv('단어를 적어 보세요','','',isLast?'완료되었습니다':'준비되면 다음을 시작하세요',isLast?'정답 확인':'다음 시작 →');}document.getElementById('btn-st').textContent=isLast?'정답 확인':'다음 시작';}
+function handleOvBtn(){if(tState!=='writing')return;const isRD=TM==='memory'||TM==='sentence';const isLast=isRD?(mRound>=TOTAL_RDS-1):(phase>=2);if(isLast){showAnswers();return;}OV.style.display='none';if(TM==='memory'){mRound++;updDotArea();startMRound();}else if(TM==='sentence'){mRound++;updDotArea();startSRound();}else{phase++;startPhase();}}
+function showAnswers(){
+  tState='answers';document.getElementById('ov-msg').style.display='none';document.getElementById('ov-ans').style.display='block';OV.style.display='flex';
+  const rows=document.getElementById('ov-rows');rows.innerHTML='';
+  const isS=TM==='sentence',isM=TM==='memory';
+  const items=isS?allRoundData:(isM?allRoundWords:repAll);
+  const labels=isS||isM?Array.from({length:TOTAL_RDS},(_,i)=>`라운드 ${i+1}`):[PH[0].label,PH[1].label,PH[2].label];
+  const qlTitle=document.getElementById('ov-ql-title'),qlEl=document.getElementById('ov-ql');
+  qlTitle.style.display='none';qlEl.innerHTML='';
+  items.forEach((item,i)=>{
+    const div=document.createElement('div');div.style.cssText='margin-bottom:10px;padding:9px 13px;background:rgba(255,255,255,.07);border-radius:8px;border:.5px solid rgba(255,255,255,.14);';
+    const lbl=document.createElement('p');lbl.style.cssText='margin:0 0 6px;font-size:10px;color:rgba(255,255,255,.45);';lbl.textContent=labels[i];div.appendChild(lbl);
+    const ww=document.createElement('div');ww.style.cssText='display:flex;flex-wrap:wrap;gap:5px;';
+    if(isS){const rd=item;if(!rd)return;rd.sents.forEach((s,si)=>{const row=document.createElement('p');row.style.cssText='margin:0 0 3px;font-size:clamp(11px,1.6vw,13px);color:#fff;font-family:\'Malgun Gothic\',\'Apple SD Gothic Neo\',sans-serif;display:flex;align-items:baseline;gap:5px;';const ns=document.createElement('span');ns.style.cssText='font-size:10px;color:rgba(255,200,0,.7);min-width:14px;flex-shrink:0;';ns.textContent=(si+1)+'.';const ts=document.createElement('span');if(rd.quiz&&si===rd.quiz.sentIdx){const qw=rd.quiz.word;const parts=s.split(qw);if(parts.length>1){const f=document.createDocumentFragment();parts.forEach((pt,pi2)=>{f.appendChild(document.createTextNode(pt));if(pi2<parts.length-1){const m2=document.createElement('mark');m2.style.cssText='background:rgba(255,220,0,.65);border-radius:3px;padding:0 2px;color:#000;font-weight:700;';m2.textContent=qw;f.appendChild(m2);}});ts.appendChild(f);}else ts.textContent=s;}else ts.textContent=s;row.appendChild(ns);row.appendChild(ts);div.appendChild(row);});}
+    else{const words=[...new Set(Array.isArray(item)?item:[])];if(!words.length){const e=document.createElement('span');e.style.cssText='font-size:clamp(11px,1.6vw,13px);color:rgba(255,255,255,.3);font-style:italic;';e.textContent='—';ww.appendChild(e);}else words.forEach(w=>{const c=document.createElement('span');c.style.cssText='font-size:clamp(12px,1.7vw,14px);font-weight:700;color:#fff;font-family:\'Malgun Gothic\',\'Apple SD Gothic Neo\',sans-serif;background:rgba(55,138,221,.38);border:.5px solid rgba(55,138,221,.55);border-radius:4px;padding:2px 9px;';c.textContent=w;ww.appendChild(c);});div.appendChild(ww);}
+    rows.appendChild(div);
+  });
+  if(isS){qlTitle.textContent='질문 단어 목록';qlTitle.style.display='block';allRoundData.forEach((rd,i)=>{if(!rd)return;const row=document.createElement('div');row.style.cssText='margin-bottom:6px;display:flex;align-items:center;gap:8px;';const l=document.createElement('span');l.style.cssText='font-size:10px;color:rgba(255,255,255,.4);min-width:50px;';l.textContent=`라운드 ${i+1}`;const chip=document.createElement('span');chip.style.cssText='font-size:clamp(12px,1.8vw,15px);font-weight:700;color:#FFE082;font-family:\'Malgun Gothic\',\'Apple SD Gothic Neo\',sans-serif;';chip.textContent='"'+(rd.quiz?.word||'')+'"';const ans=document.createElement('span');ans.style.cssText='font-size:11px;color:rgba(255,255,255,.5);';ans.textContent=`→ ${(rd.quiz?.sentIdx||0)+1}번 문장`;row.appendChild(l);row.appendChild(chip);row.appendChild(ans);qlEl.appendChild(row);});}
+}
+
+/* ══ Badges ══ */
+function updB(){const rnd=PH[phase].mode==='r';document.getElementById('ba').textContent=(TM==='memory'?`라운드 ${mRound+1}/${TOTAL_RDS}`:(rnd?'방문 ':'왕복 ')+counter+'회');document.getElementById('bb').textContent=(posIdx+1)+' / '+TOTAL;}
+function updMB(){document.getElementById('ba').textContent=`라운드 ${mRound+1}/${TOTAL_RDS}`;document.getElementById('bb').textContent=`단어 ${roundWords.length}개`;document.getElementById('bc').textContent=`회차 ${Math.min(mCycle+1,MEM_CYCLES)}/${MEM_CYCLES}`;}
+function updSB(){document.getElementById('ba').textContent=`라운드 ${mRound+1}/${TOTAL_RDS}`;document.getElementById('bb').textContent=`문장 ${wl}개`;document.getElementById('bc').textContent=`${curSentIdx+1}/${wl}번`;}
+function updTimerB(){const el=document.getElementById('bc');el.textContent='⏱ '+remSec+'s';el.style.color=remSec<=10?'#D32F2F':'#111';el.style.borderColor=remSec<=10?'#D32F2F':'#ddd';}
+function updDsBadge(){
+  const label=activeDS==='default'?'기본 (내장)':activeDS;
+  document.getElementById('ds-txt').textContent=label;
+  document.getElementById('ds-dot').style.color=activeDS==='default'?'#378ADD':'#D32F2F';
+}
+function updPhUI(){
+  const nm=TM_NAMES[TM];const suffix=(TM==='vision'||TM==='concentration')?' · '+PH[phase].label:'';
+  document.getElementById('tlabel').textContent=nm+suffix;updDotArea();
+  if(TM==='vision'||TM==='concentration'){document.getElementById('ba').textContent='왕복 0회';document.getElementById('bb').textContent='1/'+TOTAL;remSec=(TM==='vision'?V_DUR:C_DUR)[phase];updTimerB();}
+  else if(TM==='memory'){document.getElementById('ba').textContent=`라운드 —/${TOTAL_RDS}`;document.getElementById('bb').textContent='단어 —개';document.getElementById('bc').textContent=`회차 —/${MEM_CYCLES}`;document.getElementById('bc').style.color='#111';document.getElementById('bc').style.borderColor='#ddd';}
+  else{document.getElementById('ba').textContent=`라운드 —/${TOTAL_RDS}`;document.getElementById('bb').textContent=`문장 ${wl}개`;document.getElementById('bc').textContent='— / —';document.getElementById('bc').style.color='#111';document.getElementById('bc').style.borderColor='#ddd';}
+}
+function updDotArea(){
+  const area=document.getElementById('dot-area');area.innerHTML='';
+  const isRD=TM==='memory'||TM==='sentence';const total=isRD?TOTAL_RDS:3;const cur=isRD?mRound:phase;
+  for(let i=0;i<total;i++){const d=document.createElement('div');const ac=i===cur,dn=i<cur;d.style.cssText=`width:${ac?9:7}px;height:${ac?9:7}px;border-radius:50%;background:${dn?'rgba(55,138,221,.45)':ac?'#378ADD':'rgba(140,140,140,.22)'};transition:all .3s;`;area.appendChild(d);}
+}
+
+/* ══ Controls ══ */
+function setShape(s){shape=s;if(s==='alt')alt=false;apSh();apCl(curColor);['circle','dot','alt'].forEach(n=>{document.getElementById('bsh-'+n[0]).className=n===s?'active':'';});}
+function setBC(n){bc=n;[1,2,3].forEach(v=>{document.getElementById('bbc'+v).className=v===n?'active':'';});}
+function setWL(n){wl=n;upDims();if(TM==='sentence'){if(tState==='idle')buildSlots();}else drawGrid();[2,3,4,5,6].forEach(v=>{document.getElementById('bwl'+v).className=v===n?'active':'';});}
+function setLV(l){lv=l;usedSents.clear();['하','중','상'].forEach(v=>{document.getElementById('blv'+v).className=v===l?'active':'';});}
+function setSP(v){spd=parseInt(v);document.getElementById('splb').textContent=SPD[spd].l;}
+function switchDS(ds){
+  closeNav();activeDS=ds;usedW.clear();usedSents.clear();updDsBadge();
+  const defEl=document.getElementById('nd-default');
+  const defDot=document.getElementById('nd-default-dot');
+  const isDefault=ds==='default';
+  defEl.className='dropup-item'+(isDefault?' active':'');
+  defDot.textContent=isDefault?'●':'○';
+  defDot.style.opacity=isDefault?'1':'.4';
+  renderNavDS();
+}
+function switchTM(nm){
+  closeNav();if(TM===nm&&tState==='idle')return;TM=nm;fullReset();
+  document.getElementById('cv').style.display=nm==='vision'?'flex':'none';
+  document.getElementById('cw').style.display=nm!=='vision'?'flex':'none';
+  document.getElementById('wl-label').textContent=nm==='sentence'?'문장':'글자';
+  document.getElementById('tnlbl').textContent=TM_NAMES[nm];
+  ['vision','concentration','memory','sentence'].forEach((m,i)=>{
+    const ac=m===nm,el=document.getElementById('nt'+i),sp=document.getElementById('ni'+i);
+    el.className='dropup-item'+(ac?' active':'');sp.textContent=ac?'●':'○';sp.style.opacity=ac?'1':'.4';
+  });
+}
+
+/* ══ Main ══ */
+function toggleStart(){
+  const btn=document.getElementById('btn-st');
+  if(tState==='writing'){handleOvBtn();return;}
+  if(tState==='thinking'||tState==='answers')return;
+  if(tState==='running'){
+    tState='paused';stopAll();SH.style.opacity='0';WE.style.opacity='0';
+    for(let i=0;i<(TM==='sentence'?wl:0);i++)hideSlot(i);btn.textContent='계속';
+  }else if(tState==='paused'){
+    tState='running';btn.textContent='일시정지';
+    if(TM==='vision'){startCD();vStep();}else if(TM==='concentration'){startCD();cStep();}
+    else if(TM==='memory'){tId=setTimeout(mStep,0);}else{displaySent(curSentIdx,endSDisplay);}
+  }else{
+    phase=0;mRound=0;repAll=[[],[],[]];allRoundWords=[];allRoundData=[];usedW.clear();usedSents.clear();updDotArea();
+    if(TM==='vision'||TM==='concentration')startPhase();else if(TM==='memory')startMRound();else startSRound();
+  }
+}
+function fullReset(){
+  tState='idle';stopAll();OV.style.display='none';
+  document.getElementById('ov-msg').style.display='flex';document.getElementById('ov-ans').style.display='none';
+  phase=0;posIdx=0;moveDir=1;counter=0;stepN=0;inRep=false;lastW=null;
+  repAll=[[],[],[]];mRound=0;mCycle=0;mWIdx=0;roundWords=[];allRoundWords=[];
+  currentSents=[];allRoundData=[];usedW.clear();usedSents.clear();curSentIdx=0;
+  curColor=COLORS[0];SH.style.opacity='0';WE.style.opacity='0';WE.textContent='';
+  document.getElementById('btn-st').textContent='시작';
+  upDims();updPhUI();drawGrid();
+  if(TM==='sentence'){slotsEl.style.display='block';buildSlots();}else slotsEl.style.display='none';
+}
+function toggleNav(type,e){
+  if(e)e.stopPropagation();const next=navOpen===type?null:type;navOpen=next;
+  document.getElementById('nav-trainer').style.display=next==='trainer'?'block':'none';
+  document.getElementById('nav-data').style.display=next==='data'?'block':'none';
+}
+function closeNav(){navOpen=null;document.getElementById('nav-trainer').style.display='none';document.getElementById('nav-data').style.display='none';}
+document.addEventListener('click',()=>closeNav());
+
+function init(){
+  setShape('circle');setBC(1);setWL(2);setLV('하');setSP(3);
+  activeDS='default';updDsBadge();
+  switchTM('vision');
+  initDB();
+}
+window.addEventListener('resize',()=>{
+  upDims();drawGrid();
+  if(TM==='sentence'&&(tState==='idle'||tState==='paused'))buildSlots();
+  if(tState==='running'||tState==='paused'){
+    if(TM==='vision'){apSh();plSh(posIdx);apCl(curColor);}
+    else if(TM==='concentration'||TM==='memory'){const{x,y}=gXY(posIdx);WE.style.left=x+'px';WE.style.top=y+'px';WE.style.fontSize=lay.fs+'px';}
+  }
+});
+setTimeout(init,100);
+</script>
+</body>
+</html>
