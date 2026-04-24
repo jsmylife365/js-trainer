@@ -97,7 +97,8 @@ input[type=range]{flex:1;min-width:36px;max-width:90px;}
 .ditem:hover{background:#f5f5f5;}
 .ditem.active{background:#e6f1fb;color:#185fa5;font-weight:500;}
 .ddiv{height:.5px;background:#eee;}
-/* DS badge moved to cbar */
+/* DS badge */
+#dsBadge{position:absolute;bottom:8px;left:8px;z-index:10;font-size:10px;background:rgba(255,255,255,.92);border:.5px solid #ddd;border-radius:4px;padding:2px 8px;color:#666;display:flex;align-items:center;gap:4px;}
 /* Settings modal */
 #settBg{display:none;position:absolute;inset:0;background:rgba(0,0,0,.6);z-index:200;align-items:center;justify-content:center;}
 #settBg.open{display:flex;}
@@ -197,6 +198,15 @@ body:fullscreen #app,body:-webkit-full-screen #app{width:100vw;height:100vh;bord
       <button onclick="closeAd()" style="font-size:13px;padding:8px 28px;background:rgba(255,255,255,.15);color:#fff;border-color:rgba(255,255,255,.4);border-radius:8px;">결과 확인 →</button>
     </div>
 
+    <!-- 언어팩·점수 뱃지 -->
+    <div id="dsBadge" style="position:absolute;bottom:8px;left:8px;z-index:10;font-size:10px;background:rgba(255,255,255,.92);border:.5px solid #ddd;border-radius:4px;padding:2px 8px;color:#666;display:flex;align-items:center;gap:4px;">
+      <span id="dsDot" style="color:#378ADD;font-size:8px;">●</span>
+      <span id="dsTxt">기본 (내장)</span>
+    </div>
+    <div id="scoreBadge" style="position:absolute;bottom:8px;right:8px;z-index:10;font-size:10px;background:rgba(255,255,255,.92);border:.5px solid #ddd;border-radius:4px;padding:2px 8px;color:#666;display:flex;align-items:center;gap:4px;">
+      <span style="color:#D32F2F;font-size:10px;line-height:1;">★</span>
+      <span id="scoreTxt" style="line-height:1;">오늘 0점</span>
+    </div>
     <!-- Training overlay -->
     <div id="OV">
       <div id="ov-msg">
@@ -220,16 +230,6 @@ body:fullscreen #app,body:-webkit-full-screen #app{width:100vw;height:100vh;bord
 
   <!-- Controls bar -->
   <div id="cbar">
-    <!-- 데이터팩·점수 뱃지 (cbar 좌측) -->
-    <div id="dsBadge" style="font-size:clamp(9px,1vw,10px);background:#f0f0f0;border:.5px solid #ddd;border-radius:4px;padding:2px 7px;color:#666;display:flex;align-items:center;gap:3px;flex-shrink:0;white-space:nowrap;">
-      <span id="dsDot" style="color:#378ADD;font-size:8px;">●</span>
-      <span id="dsTxt">기본 (내장)</span>
-    </div>
-    <div id="scoreBadge" style="font-size:clamp(9px,1vw,10px);background:#f0f0f0;border:.5px solid #ddd;border-radius:4px;padding:2px 7px;color:#666;display:flex;align-items:center;gap:3px;flex-shrink:0;white-space:nowrap;">
-      <span style="color:#D32F2F;font-size:10px;line-height:1;">★</span>
-      <span id="scoreTxt" style="line-height:1;">오늘 0점</span>
-    </div>
-    <div class="sep"></div>
     <!-- 1줄: 훈련별 컨트롤 + 속도 -->
     <div id="cv" style="display:flex;align-items:center;gap:3px;flex-shrink:0;">
       <span style="font-size:10px;color:#888;">도형</span>
@@ -829,7 +829,7 @@ document.addEventListener('fullscreenchange', onFSChange);
 document.addEventListener('webkitfullscreenchange', onFSChange);
 
 /* ═══ Constants ═══════════════════════════════════ */
-const ROWS=6, CF=1.12, TOP=0.12, BOT=0.14;
+const ROWS=6, CF=1.12, TOP=0.13, BOT=0.16;
 const COLORS=[{fill:'#111',border:'#000'},{fill:'#D32F2F',border:'#B71C1C'},{fill:'#1565C0',border:'#0D47A1'},{fill:'#2E7D32',border:'#1B5E20'}];
 const SPD={1:{ms:950,l:'매우 느림'},2:{ms:700,l:'느림'},3:{ms:450,l:'보통'},4:{ms:250,l:'빠름'},5:{ms:100,l:'매우 빠름'}};
 const PH=[{label:'1단계 가로',mode:'h'},{label:'2단계 세로',mode:'v'},{label:'3단계 랜덤',mode:'r'}];
