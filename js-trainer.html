@@ -733,8 +733,8 @@ async function loadSheet() {
     await new Promise(r => setTimeout(r, 10));
     /* 장문 CSV 감지 (S/T/Q 행 구조) */
     const csvLines = csv.trim().split(/\r?\n/);
-    const firstDataLine = csvLines.find(l => l && !l.toLowerCase().startsWith('타입') && l.trim());
-    const isFocusCSV = firstDataLine && /^[STsq][,"]/i.test(firstDataLine);
+    const firstDataLine = csvLines.find(l => l && !l.trim().toLowerCase().startsWith('타입') && l.trim());
+    const isFocusCSV = firstDataLine && /^[STQstq][,"]/i.test(firstDataLine.trim());
     let data;
     if (isFocusCSV) {
       const chapters = parseFocusData(csv);
@@ -748,7 +748,12 @@ async function loadSheet() {
     }
     sheetsData[label] = data;
     await idbSave(label, data);
-    st.innerHTML = `✓ <b>${label}</b> 저장 완료 — 낱말 ${data.wordPool.length.toLocaleString()}개 / 문장 ${data.sentPool.length.toLocaleString()}개`;
+    if (data.focusChapters && data.focusChapters.length) {
+      const ch = data.focusChapters[0];
+      st.innerHTML = `✓ <b>${label}</b> 저장 완료 — 챕터 ${data.focusChapters.length}개 / 페이지 ${ch.pages.length}개 / 문제 ${ch.questions.length}개`;
+    } else {
+      st.innerHTML = `✓ <b>${label}</b> 저장 완료 — 낱말 ${data.wordPool.length.toLocaleString()}개 / 문장 ${data.sentPool.length.toLocaleString()}개`;
+    }
     st.className = 'ok';
     renderLsList(); renderNavDS();
   } catch(e) {
