@@ -1622,22 +1622,37 @@ function toggleStart() {
   if (tState==='writing') { handleOvBtn(); return; }
   if (tState==='thinking'||tState==='answers') return;
   if (tState==='running') {
-    tState='paused'; stopAll();
+    tState='paused'; stopAll(); clearTimeout(fmTimer);
     SH.style.opacity='0'; WE.style.opacity='0';
-    for (let i=0;i<(TM==='sentence'?wl:0);i++) hideSlot(i);
+    for(let i=0;i<(TM==='sentence'?wl:0);i++) hideSlot(i);
+    if(TM==='focus') fmSpans.forEach(function(sp){sp.className='fm-w';});
     btn.textContent='계속';
   } else if (tState==='paused') {
     tState='running'; btn.textContent='일시정지';
     if (TM==='vision') { startCD(); vStep(); }
     else if (TM==='concentration') { startCD(); cStep(); }
     else if (TM==='memory') { tId=setTimeout(mStep,0); }
-    else { displaySent(curSentIdx,endSDisplay); }
+    else if (TM==='sentence') { displaySent(curSentIdx,endSDisplay); }
+    else if (TM==='focus') { if(fmChapter) fmTimer=setTimeout(fmStep,SPD[spd].ms); }
   } else {
+    /* idle 상태 */
+    if (TM==='focus') {
+      if(fmChapter&&fmSpans.length) {
+        /* 텍스트 이미 표시됨 → 점멸 시작 */
+        tState='running'; btn.textContent='일시정지';
+        fmWordIdx=0;
+        fmSpans.forEach(function(sp){sp.className='fm-w';});
+        fmTimer=setTimeout(fmStep,800);
+      } else {
+        startFocusTraining();
+      }
+      return;
+    }
     phase=0; mRound=0; repAll=[[],[],[]]; allRoundWords=[]; allRoundData=[];
     usedW.clear(); usedSents.clear(); updDotArea();
     if (TM==='vision'||TM==='concentration') startPhase();
     else if (TM==='memory') startMRound();
-    else startSRound();
+    else if (TM==='sentence') startSRound();
   }
 }
 
@@ -2022,18 +2037,17 @@ function parseFocusData(csv){
              2) 모든 sheetsData의 readingChapters
              3) focusChapters (구버전 호환) */
 function getFmChapters(){
-  /* 1. 현재 선택된 데이터 팩 우선 */
-  if(activeDS!=='default'&&sheetsData[activeDS]){
-    const rc=sheetsData[activeDS].readingChapters;
-    if(rc&&rc.length) return rc;
-    const fc=sheetsData[activeDS].focusChapters;
-    if(fc&&fc.length) return fc;
-  }
-  /* 2. 전체 검색 */
+  /* sheetsData 전체에서 readingChapters 수집 */
   const all=[];
   Object.keys(sheetsData).forEach(k=>{
-    if(sheetsData[k].readingChapters) all.push(...sheetsData[k].readingChapters);
-    else if(sheetsData[k].focusChapters) all.push(...sheetsData[k].focusChapters);
+    const d=sheetsData[k];
+    if(d.readingChapters&&d.readingChapters.length) all.push(...d.readingChapters);
+  });
+  if(all.length) return all;
+  /* 구버전 focusChapters 호환 */
+  Object.keys(sheetsData).forEach(k=>{
+    const d=sheetsData[k];
+    if(d.focusChapters&&d.focusChapters.length) all.push(...d.focusChapters);
   });
   return all;
 }
@@ -2042,83 +2056,89 @@ function getFmChapters(){
 function startFocusTraining(){
   const chapters=getFmChapters();
   if(!chapters.length){
-    /* 자동으로 GitHub에서 장문_일반.csv 로드 */
-    tState='thinking';
+    /* GitHub에서 한글_일반.csv 자동 로드 */
     showOvMsg();
-    setOv('독서능력 향상 훈련','','','데이터를 불러오는 중...','');
+    setOv('독서능력 향상','','','데이터를 불러오는 중...','');
     document.getElementById('ovB').style.display='none';
     OV.style.display='flex';
-    /* activeDS가 한글_일반이면 해당 데이터 사용, 없으면 GitHub에서 로드 */
-    const dsKey=Object.keys(sheetsData).find(k=>sheetsData[k].readingChapters&&sheetsData[k].readingChapters.length)||null;
-    const url=dsKey?null:'https://jsmylife365.github.io/js-trainer/한글_일반.csv';
-    if(dsKey){ /* 이미 로드된 데이터 사용 - 단순히 재시작 */ tState='idle'; OV.style.display='none'; startFocusTraining(); return; }
-    if(!url){tState='idle';OV.style.display='none';return;}
-    tryFetch(url,null).then(function(csv){
-      const chs=parseFocusData(csv);
-      if(!chs.length)throw new Error('파싱 실패');
-      const label='장문_일반(확장)';
-      sheetsData[label]={wordPool:[],sentPool:[],focusChapters:chs};
-      idbSave(label,{wordPool:[],sentPool:[],focusChapters:chs});
+    tState='thinking';
+    tryFetch('https://jsmylife365.github.io/js-trainer/%ED%95%9C%EA%B8%80_%EC%9D%BC%EB%B0%98.csv',null)
+    .then(function(csv){
+      const d=parseCSV(csv);
+      const rc=d.readingChapters||[];
+      if(!rc.length){
+        setOv('데이터 없음','','','한글_일반.csv에 장문 데이터가 없습니다','닫기');
+        document.getElementById('ovB').style.display='block';
+        document.getElementById('ovB').onclick=function(){OV.style.display='none';fullReset();};
+        return;
+      }
+      const label='한글_일반(확장)';
+      sheetsData[label]=d;
+      idbSave(label,d);
       renderNavDS();
       OV.style.display='none';
       tState='idle';
-      startFocusTraining(); /* 재시작 */
+      startFocusTraining();
     }).catch(function(e){
-      setOv('로드 실패','','','GitHub에서 데이터를 불러올 수 없습니다','닫기');
+      setOv('로드 실패','','','GitHub에서 데이터를 불러올 수 없습니다. 데이터팩을 먼저 연동하세요.','닫기');
       document.getElementById('ovB').style.display='block';
       document.getElementById('ovB').onclick=function(){OV.style.display='none';fullReset();};
     });
     return;
   }
+
+  /* 챕터 선택 */
   fmChapter=chapters[Math.floor(Math.random()*chapters.length)];
   fmPageIdx=0; fmWordIdx=0; fmSpans=[];
   fmQuestions=[]; fmQIdx=0; fmScore=0;
 
-  document.getElementById('fmArea').style.display='block';
-  slotsEl.style.display='none';
-  SH.style.opacity='0'; WE.style.opacity='0';
-  /* 그리드 숨기기 */
-  const ctx=CNV.getContext('2d');
-  ctx.clearRect(0,0,CNV.width,CNV.height);
+  /* 화면 설정: 그리드 완전 숨기고 텍스트 영역 표시 */
   CNV.style.display='none';
+  slotsEl.style.display='none';
+  SH.style.opacity='0';
+  WE.style.opacity='0';
+  document.getElementById('fmArea').style.display='block';
 
-  tState='running';
-  document.getElementById('btnSt').textContent='일시정지';
-  fmLoadPage(0);
+  /* 첫 페이지 텍스트 회색으로 미리 표시 (시작 전) */
+  fmLoadPageGray(0);
+
+  tState='idle';
+  document.getElementById('btnSt').textContent='시작';
   updDotArea();
   ding();
 }
 
-/* 페이지 로드 */
-function fmLoadPage(pageIdx){
+/* 페이지를 회색으로만 표시 (점멸 없이) */
+function fmLoadPageGray(pageIdx){
   fmPageIdx=pageIdx; fmWordIdx=0;
   clearTimeout(fmTimer);
-
   const content=document.getElementById('fmContent');
-  const title=document.getElementById('fmTitle');
+  const titleEl=document.getElementById('fmTitle');
   const pageInfo=document.getElementById('fmPageInfo');
-
-  title.textContent=fmChapter.title;
+  titleEl.textContent=fmChapter.title;
   pageInfo.textContent=(fmPageIdx+1)+' / '+fmChapter.pages.length+' 페이지';
   document.getElementById('ba').textContent='페이지 '+(fmPageIdx+1)+'/'+fmChapter.pages.length;
   document.getElementById('bc').textContent=(fmPageIdx+1)+'p';
   document.getElementById('bc').style.borderColor='#2a9e00';
-
-  /* 단어 span 생성 */
-  const words=(fmChapter.pages[fmPageIdx]||'').split(/\s+/).filter(w=>w.length>0);
+  const words=(fmChapter.pages[fmPageIdx]||'').split(/\s+/).filter(function(w){return w.length>0;});
   content.innerHTML='';
   fmSpans=[];
-  words.forEach(w=>{
+  words.forEach(function(w){
     const sp=document.createElement('span');
-    sp.textContent=w+' ';  /* 단어 + 비파괴공백 */
+    sp.textContent=w+'\u00A0';
     sp.className='fm-w';
     content.appendChild(sp);
     fmSpans.push(sp);
   });
   document.getElementById('bb').textContent='0 / '+fmSpans.length;
   updDotArea();
+}
 
-  fmTimer=setTimeout(()=>{ if(tState==='running') fmStep(); },1200);
+/* 페이지 로드 (점멸 시작) */
+function fmLoadPage(pageIdx){
+  fmLoadPageGray(pageIdx);
+  /* 점멸 시작 */
+  fmTimer=setTimeout(function(){if(tState==='running')fmStep();},1200);
 }
 
 /* 단어 점멸 애니메이션 */
@@ -2143,9 +2163,14 @@ function fmStep(){
 
 /* 페이지 완료 */
 function fmPageDone(){
-  fmSpans.forEach(sp=>sp.className='fm-w');
+  fmSpans.forEach(function(sp){sp.className='fm-w';});
   if(fmPageIdx+1<fmChapter.pages.length){
-    fmTimer=setTimeout(()=>{ if(tState==='running') fmLoadPage(fmPageIdx+1); },700);
+    /* 다음 페이지 잠깐 회색 표시 후 점멸 */
+    setTimeout(function(){
+      if(tState!=='running') return;
+      fmLoadPageGray(fmPageIdx+1);
+      fmTimer=setTimeout(fmStep,1000);
+    },600);
   }else{
     tState='thinking';
     document.getElementById('btnSt').textContent='시작';
@@ -2159,9 +2184,9 @@ function fmPageDone(){
 /* 다시보기 */
 function fmReplay(){
   document.getElementById('fmCompleteOV').style.display='none';
-  tState='running';
-  document.getElementById('btnSt').textContent='일시정지';
-  fmLoadPage(0);
+  fmLoadPageGray(0);
+  tState='idle';
+  document.getElementById('btnSt').textContent='시작';
 }
 
 /* 퀴즈 시작 */
