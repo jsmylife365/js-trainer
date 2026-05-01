@@ -227,13 +227,13 @@ body:fullscreen #app,body:-webkit-full-screen #app{width:100vw;height:100vh;bord
     <!-- FM 퀴즈 오버레이 -->
     <div id="fmQuizOV">
       <p id="fmQNum" style="color:rgba(255,255,255,.45);font-size:11px;"></p>
-      <p id="fmQText" style="color:#fff;font-size:clamp(18px,3vw,26px);font-weight:500;text-align:center;line-height:1.65;max-width:600px;"></p>
+      <p id="fmQText" style="color:#fff;font-size:clamp(14px,2.2vw,20px);font-weight:500;text-align:center;line-height:1.65;max-width:600px;"></p>
       <div id="fmQOpts" style="display:flex;flex-direction:column;gap:8px;width:100%;max-width:520px;"></div>
     </div>
     <!-- FM 결과 오버레이 -->
     <div id="fmResultOV">
       <p style="color:#FFE082;font-size:clamp(16px,2.8vw,26px);font-weight:700;">퀴즈 결과</p>
-      <p id="fmResultScore" style="color:#fff;font-size:clamp(40px,7vw,64px);font-weight:700;"></p>
+      <p id="fmResultScore" style="color:#fff;font-size:clamp(30px,5.5vw,52px);font-weight:700;"></p>
       <div id="fmResultList" style="width:100%;max-width:540px;max-height:46vh;overflow-y:auto;"></div>
       <button class="fmBtn" onclick="fullReset()" style="margin-top:6px;background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.4);">훈련 종료</button>
     </div>
@@ -253,9 +253,9 @@ body:fullscreen #app,body:-webkit-full-screen #app{width:100vw;height:100vh;bord
         <button id="ovB" onclick="handleOvBtn()" style="display:none;margin-top:8px;font-size:13px;padding:8px 26px;background:rgba(255,255,255,.15);color:#fff;border-color:rgba(255,255,255,.4);border-radius:8px;"></button>
       </div>
       <div id="ov-ans">
-        <p style="font-size:clamp(18px,2.5vw,24px);font-weight:700;color:#fff;text-align:center;margin-bottom:14px;">정답 확인</p>
+        <p style="font-size:clamp(14px,1.9vw,18px);font-weight:500;color:#fff;text-align:center;margin-bottom:12px;">정답 확인</p>
         <div id="ovRows" style="text-align:left;"></div>
-        <div id="ovQlTitle" style="display:none;font-size:16px;color:rgba(255,200,0,.85);font-weight:600;border-top:.5px solid rgba(255,255,255,.2);padding-top:12px;margin:10px 0;"></div>
+        <div id="ovQlTitle" style="display:none;font-size:13px;color:rgba(255,200,0,.85);font-weight:500;border-top:.5px solid rgba(255,255,255,.2);padding-top:10px;margin:8px 0;"></div>
         <div id="ovQl" style="margin-bottom:10px;"></div>
         <div style="text-align:center;margin-top:12px;">
           <button onclick="fullReset()" style="font-size:13px;padding:8px 24px;background:rgba(255,255,255,.15);color:#fff;border-color:rgba(255,255,255,.4);border-radius:8px;">훈련 종료</button>
@@ -1404,12 +1404,12 @@ function showAnswers() {
     const div=document.createElement('div');
     div.style.cssText='margin-bottom:10px;padding:9px 13px;background:rgba(255,255,255,.07);border-radius:8px;border:.5px solid rgba(255,255,255,.14);';
     const lbl=document.createElement('p');
-    lbl.style.cssText='margin:0 0 8px;font-size:12px;color:rgba(255,255,255,.45);';
+    lbl.style.cssText='margin:0 0 6px;font-size:10px;color:rgba(255,255,255,.45)';'
     lbl.textContent=labels[i]; div.appendChild(lbl);
     if (isS) {
       item.sents.forEach((s,si) => {
         const row=document.createElement('p');
-        row.style.cssText='margin:0 0 5px;font-size:clamp(15px,2.2vw,20px);color:#fff;font-family:"Malgun Gothic",sans-serif;display:flex;align-items:baseline;gap:6px;';
+        row.style.cssText='margin:0 0 3px;font-size:clamp(11px,1.6vw,13px);color:#fff;font-family:"Malgun Gothic",sans-serif;display:flex;align-items:baseline;gap:5px;';
         const ns=document.createElement('span');
         ns.style.cssText='font-size:10px;color:rgba(255,200,0,.7);min-width:14px;flex-shrink:0;';
         ns.textContent=(si+1)+'.';
@@ -1432,7 +1432,7 @@ function showAnswers() {
       } else {
         words.forEach(w => {
           const c=document.createElement('span');
-          c.style.cssText='font-size:clamp(16px,2.4vw,22px);font-weight:700;color:#fff;font-family:"Malgun Gothic",sans-serif;background:rgba(55,138,221,.38);border:.5px solid rgba(55,138,221,.55);border-radius:4px;padding:4px 12px;';
+          c.style.cssText='font-size:clamp(12px,1.7vw,14px);font-weight:700;color:#fff;font-family:"Malgun Gothic",sans-serif;background:rgba(55,138,221,.38);border:.5px solid rgba(55,138,221,.55);border-radius:4px;padding:2px 9px;';
           c.textContent=w; ww.appendChild(c);
         });
       }
@@ -2114,15 +2114,15 @@ function startFocusTraining(){
 function calcFmFontSize(){
   var trEl=document.getElementById('TR');
   var trH=trEl.offsetHeight, trW=trEl.offsetWidth;
-  /* 상단 바(32px) + 상하 패딩(46px) 제외 */
-  var availH=trH-32-46;
+  /* 상단 바(32px) + 상하 패딩(40px) 제외 */
+  var availH=trH-32-40;
   var LINE_COUNT=5;
   /* 높이 기준: availH / 5줄 / line-height(1.55) */
   var fsH=Math.floor(availH/LINE_COUNT/1.55);
-  /* 너비 기준: 한 줄에 8낱말, 한국어 글자 폭 ≈ font-size × 1.05
-     8낱말 × 평균 4글자 = 32글자, 여백 포함 35글자 */
-  var fsW=Math.floor(trW*0.92/35/1.05);
-  return Math.max(12, Math.min(fsH, fsW));
+  /* 너비 기준: 한 줄에 4낱말 기준 (8낱말의 절반 → 글자 2배)
+     4낱말 × 평균 4글자 = 16글자, 여백 포함 18글자 */
+  var fsW=Math.floor(trW*0.92/18/1.05);
+  return Math.max(16, Math.min(fsH, fsW));
 }
 
 /* 페이지를 회색으로만 표시 (점멸 없이) */
@@ -2228,7 +2228,7 @@ function fmShowQuestion(){
   q.opts.forEach((opt,i)=>{
     if(!opt) return;
     const btn=document.createElement('button');
-    btn.className='fmOptBtn'; btn.style.fontSize='clamp(16px,2.5vw,22px)';
+    btn.className='fmOptBtn';
     btn.textContent=(i+1)+'. '+opt;
     btn.onclick=()=>fmAnswer(i);
     opts.appendChild(btn);
@@ -2268,9 +2268,9 @@ function fmShowResults(){
     const ok=q.userAns===q.ans;
     const div=document.createElement('div');
     div.style.cssText='padding:9px 12px;margin-bottom:6px;background:rgba(255,255,255,.07);border-radius:7px;border-left:3px solid '+(ok?'#66FF33':'#ff6b6b')+';';
-    div.innerHTML='<p style="font-size:13px;color:'+(ok?'#99FF66':'#ff9999')+';font-weight:700;margin-bottom:4px;">'+(ok?'✓ 정답':'✗ 오답')+'  문제 '+(i+1)+'</p>'
-      +'<p style="font-size:clamp(15px,2.2vw,20px);color:#fff;margin-bottom:5px;">'+q.q+'</p>'
-      +'<p style="font-size:13px;color:rgba(255,255,255,.6);">정답: '+(q.ans+1)+'. '+q.opts[q.ans]
+    div.innerHTML='<p style="font-size:11px;color:'+(ok?'#99FF66':'#ff9999')+';font-weight:700;margin-bottom:3px;">'+(ok?'✓ 정답':'✗ 오답')+'  문제 '+(i+1)+'</p>'
+      +'<p style="font-size:clamp(11px,1.5vw,13px);color:#fff;margin-bottom:3px;">'+q.q+'</p>'
+      +'<p style="font-size:11px;color:rgba(255,255,255,.6);">정답: '+(q.ans+1)+'. '+q.opts[q.ans]
       +(q.userAns!==q.ans&&q.userAns>=0?' &nbsp;|&nbsp; 선택: '+(q.userAns+1)+'. '+q.opts[q.userAns]:'')+'</p>';
     list.appendChild(div);
   });
