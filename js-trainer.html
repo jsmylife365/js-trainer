@@ -103,9 +103,9 @@ input[type=range]{flex:1;min-width:36px;max-width:90px;}
 #fmArea{display:none;position:absolute;top:0;left:0;width:100%;height:100%;padding:36px 4% 10px;box-sizing:border-box;overflow:hidden;background:#f0efe8;}
 #fmTitle{display:none;}
 #fmPageInfo{display:none;}
-#fmContent{font-size:clamp(18px,4.2vw,38px);line-height:2.0;word-break:keep-all;white-space:normal;overflow:hidden;max-height:calc(100% - 8px);font-weight:600;letter-spacing:.01em;}
+#fmContent{font-size:clamp(18px,4.2vw,38px);line-height:1.55;word-break:keep-all;white-space:normal;overflow:hidden;max-height:calc(100% - 8px);font-weight:600;letter-spacing:.01em;}
 .fm-w{color:#bbb;transition:color .06s;font-weight:600;}
-.fm-w.on{color:#111 !important;font-weight:900;}
+.fm-w.on{color:#111 !important;}
 #fmCompleteOV,#fmQuizOV,#fmResultOV{display:none;position:absolute;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.88);z-index:36;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:20px;box-sizing:border-box;}
 .fmBtn{font-size:14px;padding:10px 26px;border-radius:8px;cursor:pointer;}
 .fmOptBtn{width:100%;text-align:left;font-size:clamp(12px,1.8vw,15px);padding:10px 16px;background:rgba(255,255,255,.1);color:#fff;border:1px solid rgba(255,255,255,.25);border-radius:8px;cursor:pointer;transition:background .15s;}
@@ -743,7 +743,7 @@ function parseCSV(csv) {
   });
 
   /* 낱말 수 기준 페이지 분할: 64낱말 = 8줄 × 8낱말 */
-  var WPP=64;
+  var WPP=40;
   readingChapters.forEach(function(ch){
     var words=(ch._text||'').trim().split(/\s+/).filter(function(w){return w.length>0;});
     ch.pages=[];
@@ -1606,6 +1606,8 @@ function switchTM(nm) {
     el.className='ditem'+(ac?' active':'');
     sp.textContent=ac?'●':'○'; sp.style.opacity=ac?'1':'.4';
   });
+  /* 독서능력 향상: 즉시 본문 표시 */
+  if(nm==='focus') startFocusTraining();
 }
 
 /* ═══ Main toggle ═════════════════════════════════ */
@@ -2097,7 +2099,6 @@ function startFocusTraining(){
   tState='idle';
   document.getElementById('btnSt').textContent='시작';
   updDotArea();
-  ding();
 }
 
 /* 페이지를 회색으로만 표시 (점멸 없이) */
