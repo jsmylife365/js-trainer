@@ -100,10 +100,10 @@ input[type=range]{flex:1;min-width:36px;max-width:90px;}
 /* DS badge */
 #dsBadge{position:absolute;bottom:8px;left:8px;z-index:10;font-size:10px;background:rgba(255,255,255,.92);border:.5px solid #ddd;border-radius:4px;padding:2px 8px;color:#666;display:flex;align-items:center;gap:4px;}
 /* 집중기억 훈련 */
-#fmArea{display:none;position:absolute;top:32px;left:0;width:100%;height:calc(100% - 32px);padding:14px 5% 10px;box-sizing:border-box;overflow:hidden;}
+#fmArea{display:none;position:absolute;top:0;left:0;width:100%;height:100%;padding:44px 5% 12px;box-sizing:border-box;overflow:hidden;background:#f0efe8;}
 #fmTitle{font-size:clamp(12px,1.5vw,17px);font-weight:700;color:#444;margin-bottom:6px;}
 #fmPageInfo{font-size:10px;color:#999;margin-bottom:8px;}
-#fmContent{font-size:clamp(15px,2.1vw,26px);line-height:1.9;word-break:keep-all;letter-spacing:.01em;}
+#fmContent{font-size:clamp(18px,2.8vw,32px);line-height:2.0;word-break:keep-all;letter-spacing:.02em;}
 .fm-w{color:#bbb;transition:color .04s;}
 .fm-w.on{color:#111 !important;font-weight:700;}
 #fmCompleteOV,#fmQuizOV,#fmResultOV{display:none;position:absolute;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.88);z-index:36;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:20px;box-sizing:border-box;}
@@ -319,7 +319,7 @@ body:fullscreen #app,body:-webkit-full-screen #app{width:100vw;height:100vh;bord
         <div class="ddiv"></div>
         <div class="ditem" id="nt3" onclick="switchTM('sentence')"><span id="ni3" style="opacity:.4;">○</span><span>문장기억 훈련</span></div>
         <div class="ddiv"></div>
-        <div class="ditem" id="nt4" onclick="switchTM('focus')"><span id="ni4" style="opacity:.4;">○</span><span>집중기억 훈련</span></div>
+        <div class="ditem" id="nt4" onclick="switchTM('focus')"><span id="ni4" style="opacity:.4;">○</span><span>독서능력 향상</span></div>
       </div>
     </div>
     <div class="sep"></div>
@@ -900,7 +900,7 @@ const LV_CONC={하:[1,3],중:[3,5],상:[5,7]};
 const LV_MEM={하:[2,3],중:[3,4],상:[4,5]};
 const LV_WG={하:1,중:2,상:3};
 const REST=10, TOTAL_RDS=10, MEM_CYCLES=3, DELAY2S=2000, SENT_GAP=2000;
-const TM_NAMES={vision:'시력강화 훈련',concentration:'집중력 훈련',memory:'기억력 훈련',sentence:'문장기억 훈련',focus:'집중기억 훈련'};
+const TM_NAMES={vision:'시력강화 훈련',concentration:'집중력 훈련',memory:'기억력 훈련',sentence:'문장기억 훈련',focus:'독서능력 향상'};
 
 /* ═══ State ═══════════════════════════════════════ */
 let TM='vision', COLS=12, TOTAL=72;
@@ -1614,6 +1614,8 @@ function fullReset() {
   currentSents=[]; allRoundData=[]; usedW.clear(); usedSents.clear(); curSentIdx=0;
   curColor=COLORS[0]; SH.style.opacity='0'; WE.style.opacity='0'; WE.textContent='';
   document.getElementById('btnSt').textContent='시작';
+  /* CNV 복원 */
+  CNV.style.display='block';
   /* FM 오버레이 모두 닫기 */
   ['fmArea','fmCompleteOV','fmQuizOV','fmResultOV'].forEach(id=>{
     const el=document.getElementById(id); if(el) el.style.display='none';
@@ -1927,36 +1929,54 @@ let fmQuestions=[], fmQIdx=0, fmScore=0;
 
 /* 장문 CSV 파싱 → [{title,pages[],questions[]}] */
 function parseFocusData(csv){
-  /* 멀티라인 따옴표 CSV 파서 */
-  var text=csv.split('\r\n').join('\n').split('\r').join('\n');
+  /* 새 형식: T행=본문, Q행=문제, S행 불필요
+     T행 전체를 이어붙인 후 약 300자 단위로 자동 페이지 분할 */
+  var clean = csv.replace(/\r\n/g,'\n').replace(/\r/g,'\n');
+  /* 따옴표 포함 필드 파서 */
   var rows=[],row=[],cur='',inQ=false;
-  for(var k=0;k<text.length;k++){
-    var ch=text[k];
-    if(ch==='"'){
-      if(inQ&&text[k+1]==='"'){cur+='"';k++;}
-      else inQ=!inQ;
-    }else if(ch===','&&!inQ){row.push(cur.trim());cur='';}
-    else if(ch==='\n'&&!inQ){row.push(cur.trim());if(row.some(function(x){return x;}))rows.push(row);row=[];cur='';}
-    else{cur+=ch;}
+  for(var k=0;k<clean.length;k++){
+    var c=clean[k];
+    if(c==='"'){ if(inQ&&clean[k+1]==='"'){cur+='"';k++;}else inQ=!inQ; }
+    else if(c===','&&!inQ){row.push(cur);cur='';}
+    else if(c==='\n'&&!inQ){row.push(cur);if(row.join('').trim())rows.push(row);row=[];cur='';}
+    else cur+=c;
   }
-  if(cur||row.length){row.push(cur.trim());if(row.some(function(x){return x;}))rows.push(row);}
-  var chapters=[],ch2=null;
+  if(cur||row.length){row.push(cur);if(row.join('').trim())rows.push(row);}
+
+  /* T행 본문 이어붙이기 + Q행 수집 */
+  var allText='', questions=[];
   rows.forEach(function(cols){
-    var type=(cols[0]||'').toUpperCase().trim();
-    if(type==='타입'||type==='TYPE') return;
-    var content=(cols[1]||'').split('\n').join(' ').trim();
-    if(type==='S'){
-      if(ch2) chapters.push(ch2);
-      ch2={title:content,pages:[],questions:[]};
-    }else if(type==='T'&&ch2&&content){
-      ch2.pages.push(content);
-    }else if(type==='Q'&&ch2&&content){
+    var t=(cols[0]||'').trim().toUpperCase();
+    var v=(cols[1]||'').replace(/\n/g,' ').trim();
+    if(t==='타입'||t==='TYPE') return;
+    if(t==='T'&&v) allText+=(allText?' ':'')+v;
+    if(t==='Q'&&v){
       var ans=Math.max(0,parseInt((cols[6]||'1').trim())-1);
-      ch2.questions.push({q:content,opts:[(cols[2]||'').trim(),(cols[3]||'').trim(),(cols[4]||'').trim(),(cols[5]||'').trim()],ans:ans,userAns:-1});
+      questions.push({q:v,opts:[(cols[2]||'').trim(),(cols[3]||'').trim(),(cols[4]||'').trim(),(cols[5]||'').trim()],ans:ans,userAns:-1});
     }
   });
-  if(ch2) chapters.push(ch2);
-  return chapters;
+
+  if(!allText) return [];
+
+  /* ~300자 단위 자동 페이지 분할 (문장 끝에서 자르기) */
+  var TARGET=300, pages=[], txt=allText.trim();
+  while(txt.length>TARGET){
+    var cutAt=TARGET;
+    /* 문장 끝(. ! ?) 찾기 */
+    var search=txt.substring(TARGET-80,TARGET+80);
+    var m=search.search(/[.!?。！？]\s/);
+    if(m>=0) cutAt=TARGET-80+m+1;
+    else{
+      /* 공백에서 자르기 */
+      var sp=txt.lastIndexOf(' ',TARGET);
+      if(sp>TARGET*0.6) cutAt=sp;
+    }
+    pages.push(txt.substring(0,cutAt).trim());
+    txt=txt.substring(cutAt).trim();
+  }
+  if(txt) pages.push(txt);
+
+  return [{title:'독서능력 향상 훈련',pages:pages,questions:questions}];
 }
 
 /* sheetsData에서 장문 챕터 수집 */
@@ -1972,10 +1992,29 @@ function getFmChapters(){
 function startFocusTraining(){
   const chapters=getFmChapters();
   if(!chapters.length){
+    /* 자동으로 GitHub에서 장문_일반.csv 로드 */
+    tState='thinking';
     showOvMsg();
-    setOv('데이터 없음','','','장문_일반.csv 확장팩을 먼저 불러오세요','닫기');
-    document.getElementById('ovB').onclick=()=>{OV.style.display='none';fullReset();};
-    OV.style.display='flex'; tState='thinking'; return;
+    setOv('독서능력 향상 훈련','','','데이터를 불러오는 중...','');
+    document.getElementById('ovB').style.display='none';
+    OV.style.display='flex';
+    const url='https://jsmylife365.github.io/js-trainer/장문_일반.csv';
+    tryFetch(url,null).then(function(csv){
+      const chs=parseFocusData(csv);
+      if(!chs.length)throw new Error('파싱 실패');
+      const label='장문_일반(확장)';
+      sheetsData[label]={wordPool:[],sentPool:[],focusChapters:chs};
+      idbSave(label,{wordPool:[],sentPool:[],focusChapters:chs});
+      renderNavDS();
+      OV.style.display='none';
+      tState='idle';
+      startFocusTraining(); /* 재시작 */
+    }).catch(function(e){
+      setOv('로드 실패','','','GitHub에서 데이터를 불러올 수 없습니다','닫기');
+      document.getElementById('ovB').style.display='block';
+      document.getElementById('ovB').onclick=function(){OV.style.display='none';fullReset();};
+    });
+    return;
   }
   fmChapter=chapters[Math.floor(Math.random()*chapters.length)];
   fmPageIdx=0; fmWordIdx=0; fmSpans=[];
@@ -1984,7 +2023,10 @@ function startFocusTraining(){
   document.getElementById('fmArea').style.display='block';
   slotsEl.style.display='none';
   SH.style.opacity='0'; WE.style.opacity='0';
-  CNV.width=0;
+  /* 그리드 숨기기 */
+  const ctx=CNV.getContext('2d');
+  ctx.clearRect(0,0,CNV.width,CNV.height);
+  CNV.style.display='none';
 
   tState='running';
   document.getElementById('btnSt').textContent='일시정지';
