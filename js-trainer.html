@@ -886,9 +886,8 @@ function applyFS(on) {
   setTimeout(() => {
     upDims(); drawGrid();
     if (TM==='sentence' && (tState==='idle'||tState==='paused')) buildSlots();
-    if (TM==='focus'&&fmChapter&&fmSpans.length){
-      var fc=document.getElementById('fmContent');
-      if(fc) fc.style.fontSize=calcFmFontSize()+'px';
+    if (TM==='focus'&&fmChapter&&fmChWords.length){
+      fmLoadPageGray(fmWordStart);
     }
     if (tState==='running'||tState==='paused') {
       if (TM==='vision') { apSh(); plSh(posIdx); apCl(curColor); }
@@ -1672,7 +1671,7 @@ function fullReset() {
     const el=document.getElementById(id); if(el) el.style.display='none';
   });
   clearTimeout(fmTimer);
-  fmChapter=null; fmPageIdx=0; fmWordIdx=0; fmSpans=[]; fmQIdx=0; fmScore=0; fmQuestions=[];
+  fmChapter=null; fmPageIdx=0; fmWordIdx=0; fmWordStart=0; fmChWords=[]; fmSpans=[]; fmQIdx=0; fmScore=0; fmQuestions=[];
   upDims(); updPhUI(); drawGrid();
   if (TM==='sentence') { slotsEl.style.display='block'; buildSlots(); }
   else slotsEl.style.display='none';
@@ -1733,10 +1732,9 @@ function init() {
 window.addEventListener('resize', () => {
   upDims(); drawGrid();
   if (TM==='sentence'&&(tState==='idle'||tState==='paused')) buildSlots();
-  if (TM==='focus'&&fmChapter&&fmSpans.length){
-    /* 리사이즈 시 폰트 재계산 */
-    var fc=document.getElementById('fmContent');
-    if(fc) fc.style.fontSize=calcFmFontSize()+'px';
+  if (TM==='focus'&&fmChapter&&fmChWords.length){
+    /* 리사이즈 시 폰트 + 페이지 재계산 */
+    fmLoadPageGray(fmWordStart);
   }
   if (tState==='running'||tState==='paused') {
     if (TM==='vision') { apSh(); plSh(posIdx); apCl(curColor); }
@@ -1978,7 +1976,7 @@ function initRanking() {
    집중기억 훈련 (Focus Memory Training)
    CSV: 타입(S/T/Q),내용,보기1,보기2,보기3,보기4,정답번호(1-4)
 ══════════════════════════════════════════════════════════ */
-let fmChapter=null, fmPageIdx=0, fmWordIdx=0;
+let fmChapter=null, fmPageIdx=0, fmWordIdx=0, fmWordStart=0, fmChWords=[];
 let fmSpans=[], fmTimer=null;
 let fmQuestions=[], fmQIdx=0, fmScore=0;
 
@@ -2092,7 +2090,10 @@ function startFocusTraining(){
 
   /* 챕터 선택 */
   fmChapter=chapters[Math.floor(Math.random()*chapters.length)];
-  fmPageIdx=0; fmWordIdx=0; fmSpans=[];
+  /* 낱말 배열 초기화 */
+  var rawText=fmChapter.pages.join(' ');
+  fmChWords=rawText.split(/\s+/).filter(function(w){return w.length>0;});
+  fmPageIdx=0; fmWordIdx=0; fmWordStart=0; fmSpans=[];
   fmQuestions=[]; fmQIdx=0; fmScore=0;
 
   /* 화면 설정: 그리드 완전 숨기고 텍스트 영역 표시 */
@@ -2113,38 +2114,43 @@ function startFocusTraining(){
 /* 동적 폰트 크기: 훈련 영역에 정확히 5줄 맞추기 */
 function calcFmFontSize(){
   var trEl=document.getElementById('TR');
-  var trH=trEl.offsetHeight, trW=trEl.offsetWidth;
-  /* 상단 바(32px) + 상하 패딩(40px) 제외 */
-  var availH=trH-32-40;
-  var LINE_COUNT=5;
-  /* 높이 기준: availH / 5줄 / line-height(1.55) */
-  var fsH=Math.floor(availH/LINE_COUNT/1.55);
-  /* 너비 기준: 한 줄에 4낱말 기준 (8낱말의 절반 → 글자 2배)
-     4낱말 × 평균 4글자 = 16글자, 여백 포함 18글자 */
-  var fsW=Math.floor(trW*0.92/18/1.05);
-  return Math.max(16, Math.min(fsH, fsW));
+  var trH=trEl.offsetHeight||500;
+  var availH=Math.max(150, trH-80);
+  /* 높이 기준으로만 계산: 5줄이 항상 들어오게 */
+  return Math.max(14, Math.floor(availH/5/1.55));
+}
+function calcFmWPP(){
+  var trW=(document.getElementById('TR').offsetWidth)||375;
+  var fs=calcFmFontSize();
+  /* 한국어 글자 폭 ≈ font-size × 0.95, 평균 낱말 3.5글자 */
+  var wordsPerLine=Math.max(2,Math.floor(trW*0.88/(fs*0.95*3.5)));
+  return Math.max(5, wordsPerLine*5);
 }
 
-/* 페이지를 회색으로만 표시 (점멸 없이) */
-function fmLoadPageGray(pageIdx){
-  fmPageIdx=pageIdx; fmWordIdx=0;
+/* 페이지를 회색으로만 표시 — 동적 WPP */
+function fmLoadPageGray(wordStart){
+  fmWordStart = wordStart||0;
+  fmWordIdx = 0;
   clearTimeout(fmTimer);
-  var content=document.getElementById('fmContent');
-  /* 동적 폰트 크기 적용 */
-  var fs=calcFmFontSize();
-  content.style.fontSize=fs+'px';
-  document.getElementById('ba').textContent='페이지 '+(fmPageIdx+1)+'/'+fmChapter.pages.length;
+  var wpp = calcFmWPP();
+  var pageWords = fmChWords.slice(fmWordStart, fmWordStart+wpp);
+  var totalPages = Math.ceil(fmChWords.length/wpp)||1;
+  fmPageIdx = Math.floor(fmWordStart/wpp);
+  /* 동적 폰트 크기 */
+  var fs = calcFmFontSize();
+  var content = document.getElementById('fmContent');
+  content.style.fontSize = fs+'px';
+  document.getElementById('ba').textContent='페이지 '+(fmPageIdx+1)+'/'+totalPages;
   document.getElementById('bc').textContent=(fmPageIdx+1)+'p';
   document.getElementById('bc').style.borderColor='#2a9e00';
-  var words=(fmChapter.pages[fmPageIdx]||'').split(/\s+/).filter(function(w){return w.length>0;});
   content.innerHTML='';
   fmSpans=[];
-  words.forEach(function(w,wi){
+  pageWords.forEach(function(w,wi){
     var sp=document.createElement('span');
     sp.textContent=w;
     sp.className='fm-w';
     content.appendChild(sp);
-    if(wi<words.length-1) content.appendChild(document.createTextNode(' '));
+    if(wi<pageWords.length-1) content.appendChild(document.createTextNode(' '));
     fmSpans.push(sp);
   });
   document.getElementById('bb').textContent='0 / '+fmSpans.length;
@@ -2178,18 +2184,21 @@ function fmStep(){
   fmTimer=setTimeout(fmStep, SPD[spd].ms);
 }
 
-/* 페이지 완료 - 딜레이 없이 즉시 다음 페이지 */
+/* 페이지 완료 */
 function fmPageDone(){
   fmSpans.forEach(function(sp){sp.className='fm-w';});
-  if(fmPageIdx+1<fmChapter.pages.length){
-    fmLoadPageGray(fmPageIdx+1);
+  var wpp=calcFmWPP();
+  var nextStart=fmWordStart+wpp;
+  if(nextStart<fmChWords.length){
+    fmLoadPageGray(nextStart);
     fmWordIdx=0;
-    fmStep(); /* setTimeout 없이 즉시 실행 */
+    fmTimer=setTimeout(fmStep,0);
   }else{
     tState='thinking';
     document.getElementById('btnSt').textContent='시작';
     document.getElementById('fmCompleteOV').style.display='flex';
-    document.getElementById('fmCompInfo').textContent='총 '+fmChapter.pages.length+'페이지 완독 🎉';
+    var totalPages=Math.ceil(fmChWords.length/wpp)||1;
+    document.getElementById('fmCompInfo').textContent='총 '+totalPages+'페이지 완독 🎉';
     addScore(1);
     ding();
   }
@@ -2198,6 +2207,8 @@ function fmPageDone(){
 /* 다시보기 */
 function fmReplay(){
   document.getElementById('fmCompleteOV').style.display='none';
+  fmChWords=fmChapter.pages.join(' ').split(/\s+/).filter(function(w){return w.length>0;});
+  fmWordStart=0;
   fmLoadPageGray(0);
   tState='idle';
   document.getElementById('btnSt').textContent='시작';
