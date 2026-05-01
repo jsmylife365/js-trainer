@@ -2115,10 +2115,14 @@ function startFocusTraining(){
 function calcFmFontSize(){
   var trEl=document.getElementById('TR');
   var trH=trEl.offsetHeight||500;
-  /* 상단 녹색 바(32px) + 상하 패딩(12px) 제외 */
-  var availH=Math.max(100, trH-32-12);
-  /* 7줄 기준, line-height 1.55 */
-  return Math.max(10, Math.floor(availH/7/1.50));
+  var trW=trEl.offsetWidth||375;
+  /* 높이 기준: 7줄 + 상단바(32) + 여백(50) */
+  var availH=Math.max(100, trH-32-50);
+  var fsH=Math.floor(availH/7/1.50);
+  /* 너비 기준: 한 줄 평균 9글자, 한국어 폭 ≈ fs*0.95, 좌우 패딩 8% */
+  var fsW=Math.floor(trW*0.88/(9*0.95));
+  /* 둘 중 작은 값 선택 → 가로/세로 모두 이탈 없음 */
+  return Math.max(10, Math.min(fsH, fsW));
 }
 function calcFmWPP(){
   var trEl=document.getElementById('TR');
