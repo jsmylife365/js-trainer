@@ -100,11 +100,11 @@ input[type=range]{flex:1;min-width:36px;max-width:90px;}
 /* DS badge */
 #dsBadge{position:absolute;bottom:8px;left:8px;z-index:10;font-size:10px;background:rgba(255,255,255,.92);border:.5px solid #ddd;border-radius:4px;padding:2px 8px;color:#666;display:flex;align-items:center;gap:4px;}
 /* 집중기억 훈련 */
-#fmArea{display:none;position:absolute;top:0;left:0;width:100%;height:100%;padding:44px 5% 12px;box-sizing:border-box;overflow:hidden;background:#f0efe8;}
-#fmTitle{font-size:clamp(12px,1.5vw,17px);font-weight:700;color:#444;margin-bottom:6px;}
-#fmPageInfo{font-size:10px;color:#999;margin-bottom:8px;}
-#fmContent{font-size:clamp(18px,2.8vw,32px);line-height:2.0;word-break:keep-all;letter-spacing:.02em;}
-.fm-w{color:#bbb;transition:color .04s;}
+#fmArea{display:none;position:absolute;top:0;left:0;width:100%;height:100%;padding:36px 4% 10px;box-sizing:border-box;overflow:hidden;background:#f0efe8;}
+#fmTitle{display:none;}
+#fmPageInfo{display:none;}
+#fmContent{font-size:clamp(22px,5.5vw,44px);line-height:1.85;word-break:keep-all;letter-spacing:.02em;overflow:hidden;max-height:100%;}
+.fm-w{color:#bbb;transition:color .04s;display:inline;word-break:keep-all;}
 .fm-w.on{color:#111 !important;font-weight:700;}
 #fmCompleteOV,#fmQuizOV,#fmResultOV{display:none;position:absolute;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.88);z-index:36;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:20px;box-sizing:border-box;}
 .fmBtn{font-size:14px;padding:10px 26px;border-radius:8px;cursor:pointer;}
@@ -213,8 +213,6 @@ body:fullscreen #app,body:-webkit-full-screen #app{width:100vw;height:100vh;bord
 
     <!-- 집중기억 훈련 영역 -->
     <div id="fmArea">
-      <p id="fmTitle"></p>
-      <p id="fmPageInfo"></p>
       <div id="fmContent"></div>
     </div>
     <!-- FM 완독 오버레이 -->
@@ -745,7 +743,7 @@ function parseCSV(csv) {
   });
 
   /* 장문 본문 → 자동 페이지 분할 (약 300자) */
-  var TARGET=300;
+  var TARGET=220;
   readingChapters.forEach(function(ch){
     var txt=(ch._text||'').trim();
     while(txt.length>TARGET){
@@ -2012,7 +2010,7 @@ function parseFocusData(csv){
   if(!allText) return [];
 
   /* ~300자 단위 자동 페이지 분할 (문장 끝에서 자르기) */
-  var TARGET=300, pages=[], txt=allText.trim();
+  var TARGET=220, pages=[], txt=allText.trim();
   while(txt.length>TARGET){
     var cutAt=TARGET;
     /* 문장 끝(. ! ?) 찾기 */
@@ -2115,8 +2113,7 @@ function fmLoadPageGray(pageIdx){
   const content=document.getElementById('fmContent');
   const titleEl=document.getElementById('fmTitle');
   const pageInfo=document.getElementById('fmPageInfo');
-  titleEl.textContent=fmChapter.title;
-  pageInfo.textContent=(fmPageIdx+1)+' / '+fmChapter.pages.length+' 페이지';
+  /* 제목/페이지 정보는 상단 뱃지에만 표시 */
   document.getElementById('ba').textContent='페이지 '+(fmPageIdx+1)+'/'+fmChapter.pages.length;
   document.getElementById('bc').textContent=(fmPageIdx+1)+'p';
   document.getElementById('bc').style.borderColor='#2a9e00';
