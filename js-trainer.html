@@ -684,38 +684,84 @@ function extractLabel(url) {
 }
 
 function parseCSV(csv) {
-  const rows = csv.trim().split('\n');
-  const isHdr = rows[0] && (
-    rows[0].toLowerCase().includes('내용') ||
-    rows[0].toLowerCase().includes('낱말') ||
-    rows[0].toLowerCase().includes('word')
-  );
-  const dataRows = isHdr ? rows.slice(1) : rows;
-  const wordPool = [], sentPool = [];
-  dataRows.forEach(r => {
-    const cols = r.split(',').map(x => x.replace(/^"|"$/g,'').trim());
-    const content = cols[0];
-    const kind = (cols[1]||'').trim();
-    const level = (cols[2]||'중').trim();
-    if (!content) return;
-    const isW = kind==='낱말'||kind==='word'||kind==='w'||kind==='단어';
-    const isS = kind==='문장'||kind==='sentence'||kind==='s';
-    if (isW) {
-      const len = content.replace(/\s/g,'').length;
-      if (len >= 2 && len <= 6 && !wordPool.includes(content)) wordPool.push(content);
-    } else if (isS) {
-      if (!sentPool.find(s => s.t === content)) sentPool.push({t:content, lv:level});
-    } else {
-      const len = content.replace(/\s/g,'').length;
-      const wc = content.split(' ').length;
-      if (len <= 6 && wc === 1) {
-        if (!wordPool.includes(content)) wordPool.push(content);
-      } else {
-        if (!sentPool.find(s => s.t === content)) sentPool.push({t:content, lv:level});
-      }
+  /* 멀티라인 따옴표 포함 CSV 파서 */
+  var clean=csv.replace(/\r\n/g,'\n').replace(/\r/g,'\n');
+  var rows=[],row=[],cur='',inQ=false;
+  for(var k=0;k<clean.length;k++){
+    var c=clean[k];
+    if(c==='"'){ if(inQ&&clean[k+1]==='"'){cur+='"';k++;}else inQ=!inQ; }
+    else if(c===','&&!inQ){row.push(cur.trim());cur='';}
+    else if(c==='\n'&&!inQ){row.push(cur.trim());if(row.join('').trim())rows.push(row);row=[];cur='';}
+    else cur+=c;
+  }
+  if(cur||row.length){row.push(cur.trim());if(row.join('').trim())rows.push(row);}
+
+  var wordPool=[],sentPool=[],readingChapters=[],curCh=null;
+  var isHdr=rows[0]&&(rows[0][0]||'').toLowerCase().includes('내용')||
+            (rows[0]&&(rows[0][1]||'').toLowerCase().includes('종류'));
+  var dataRows=isHdr?rows.slice(1):rows;
+
+  dataRows.forEach(function(cols){
+    var content=(cols[0]||'').trim();
+    var kind=(cols[1]||'').trim();
+    var level=(cols[2]||'중').trim();
+    if(!content) return;
+
+    /* 장문 타입 처리 */
+    if(kind==='장문제목'){
+      curCh={title:content,pages:[],questions:[],_text:''};
+      readingChapters.push(curCh);
+      return;
     }
+    if(kind==='장문본문'){
+      if(!curCh){ curCh={title:'독서 훈련',pages:[],questions:[],_text:''}; readingChapters.push(curCh); }
+      curCh._text+=(curCh._text?' ':'')+content;
+      return;
+    }
+    if(kind==='장문퀴즈'){
+      if(!curCh){ curCh={title:'독서 훈련',pages:[],questions:[],_text:''}; readingChapters.push(curCh); }
+      var parts=content.split('|');
+      if(parts.length>=6){
+        curCh.questions.push({
+          q:parts[0].trim(),
+          opts:[parts[1].trim(),parts[2].trim(),parts[3].trim(),parts[4].trim()],
+          ans:Math.max(0,parseInt(parts[5].trim())-1),
+          userAns:-1
+        });
+      }
+      return;
+    }
+
+    /* 기존 낱말/문장 처리 */
+    var isW=kind==='낱말'||kind==='word'||kind==='단어'||kind==='w';
+    var isS=kind==='문장'||kind==='sentence'||kind==='s';
+    if(!isW&&!isS){
+      var len=content.replace(/\s/g,'').length;
+      var wc=content.split(' ').length;
+      if(len<=6&&wc===1) isW=true; else isS=true;
+    }
+    if(isW){ var ln=content.replace(/\s/g,'').length; if(ln>=2&&ln<=6&&!wordPool.includes(content)) wordPool.push(content); }
+    else if(isS){ if(!sentPool.find(function(s){return s.t===content;})) sentPool.push({t:content,lv:level}); }
   });
-  return {wordPool, sentPool};
+
+  /* 장문 본문 → 자동 페이지 분할 (약 300자) */
+  var TARGET=300;
+  readingChapters.forEach(function(ch){
+    var txt=(ch._text||'').trim();
+    while(txt.length>TARGET){
+      var cut=TARGET;
+      var seg=txt.substring(Math.max(0,TARGET-80),TARGET+80);
+      var m=seg.search(/[.!?。！？]\s/);
+      if(m>=0) cut=Math.max(0,TARGET-80)+m+1;
+      else{ var sp=txt.lastIndexOf(' ',TARGET); if(sp>TARGET*0.6) cut=sp; }
+      ch.pages.push(txt.substring(0,cut).trim());
+      txt=txt.substring(cut).trim();
+    }
+    if(txt) ch.pages.push(txt);
+    delete ch._text;
+  });
+
+  return {wordPool:wordPool, sentPool:sentPool, readingChapters:readingChapters};
 }
 
 async function loadSheet() {
@@ -731,28 +777,20 @@ async function loadSheet() {
     const csv = await tryFetch(url, st);
     st.textContent = '파싱 중...'; st.className = '';
     await new Promise(r => setTimeout(r, 10));
-    /* 장문 CSV 감지 (S/T/Q 행 구조) */
-    const csvLines = csv.trim().split(/\r?\n/);
-    const firstDataLine = csvLines.find(l => l && !l.trim().toLowerCase().startsWith('타입') && l.trim());
-    const isFocusCSV = firstDataLine && /^[STQstq][,"]/i.test(firstDataLine.trim());
-    let data;
-    if (isFocusCSV) {
-      const chapters = parseFocusData(csv);
-      data = { wordPool: [], sentPool: [], focusChapters: chapters };
-      if (!chapters.length) throw new Error('챕터(S행)가 없습니다. CSV 구조를 확인하세요');
-    } else {
-      data = parseCSV(csv);
-      if (!data.wordPool.length && !data.sentPool.length) {
-        throw new Error('데이터가 없습니다. A열=내용, B열=종류(낱말/문장)를 확인하세요');
-      }
+    /* parseCSV가 낱말/문장/장문 모두 처리 */
+    const data = parseCSV(csv);
+    if (!data.wordPool.length && !data.sentPool.length && !(data.readingChapters&&data.readingChapters.length)) {
+      throw new Error('데이터가 없습니다. B열=종류(낱말/문장/장문본문)를 확인하세요');
     }
     sheetsData[label] = data;
     await idbSave(label, data);
-    if (data.focusChapters && data.focusChapters.length) {
-      const ch = data.focusChapters[0];
-      st.innerHTML = `✓ <b>${label}</b> 저장 완료 — 챕터 ${data.focusChapters.length}개 / 페이지 ${ch.pages.length}개 / 문제 ${ch.questions.length}개`;
+    const rc=data.readingChapters||data.focusChapters||[];
+    if(rc.length){
+      const totalP=rc.reduce(function(s,c){return s+c.pages.length;},0);
+      const totalQ=rc.reduce(function(s,c){return s+c.questions.length;},0);
+      st.innerHTML=`✓ <b>${label}</b> 저장 완료 — 낱말 ${data.wordPool.length.toLocaleString()}개 / 문장 ${data.sentPool.length.toLocaleString()}개 / 장문챕터 ${rc.length}개(${totalP}페이지, 문제${totalQ}개)`;
     } else {
-      st.innerHTML = `✓ <b>${label}</b> 저장 완료 — 낱말 ${data.wordPool.length.toLocaleString()}개 / 문장 ${data.sentPool.length.toLocaleString()}개`;
+      st.innerHTML=`✓ <b>${label}</b> 저장 완료 — 낱말 ${data.wordPool.length.toLocaleString()}개 / 문장 ${data.sentPool.length.toLocaleString()}개`;
     }
     st.className = 'ok';
     renderLsList(); renderNavDS();
@@ -1979,11 +2017,23 @@ function parseFocusData(csv){
   return [{title:'독서능력 향상 훈련',pages:pages,questions:questions}];
 }
 
-/* sheetsData에서 장문 챕터 수집 */
+/* 독서 훈련 챕터 수집
+   우선순위: 1) activeDS의 readingChapters
+             2) 모든 sheetsData의 readingChapters
+             3) focusChapters (구버전 호환) */
 function getFmChapters(){
+  /* 1. 현재 선택된 데이터 팩 우선 */
+  if(activeDS!=='default'&&sheetsData[activeDS]){
+    const rc=sheetsData[activeDS].readingChapters;
+    if(rc&&rc.length) return rc;
+    const fc=sheetsData[activeDS].focusChapters;
+    if(fc&&fc.length) return fc;
+  }
+  /* 2. 전체 검색 */
   const all=[];
   Object.keys(sheetsData).forEach(k=>{
-    if(sheetsData[k].focusChapters) all.push(...sheetsData[k].focusChapters);
+    if(sheetsData[k].readingChapters) all.push(...sheetsData[k].readingChapters);
+    else if(sheetsData[k].focusChapters) all.push(...sheetsData[k].focusChapters);
   });
   return all;
 }
@@ -1998,7 +2048,11 @@ function startFocusTraining(){
     setOv('독서능력 향상 훈련','','','데이터를 불러오는 중...','');
     document.getElementById('ovB').style.display='none';
     OV.style.display='flex';
-    const url='https://jsmylife365.github.io/js-trainer/장문_일반.csv';
+    /* activeDS가 한글_일반이면 해당 데이터 사용, 없으면 GitHub에서 로드 */
+    const dsKey=Object.keys(sheetsData).find(k=>sheetsData[k].readingChapters&&sheetsData[k].readingChapters.length)||null;
+    const url=dsKey?null:'https://jsmylife365.github.io/js-trainer/한글_일반.csv';
+    if(dsKey){ /* 이미 로드된 데이터 사용 - 단순히 재시작 */ tState='idle'; OV.style.display='none'; startFocusTraining(); return; }
+    if(!url){tState='idle';OV.style.display='none';return;}
     tryFetch(url,null).then(function(csv){
       const chs=parseFocusData(csv);
       if(!chs.length)throw new Error('파싱 실패');
