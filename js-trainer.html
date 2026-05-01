@@ -2117,7 +2117,7 @@ function calcFmFontSize(){
   var trH=trEl.offsetHeight||500;
   var availH=Math.max(150, trH-80);
   /* 높이 기준으로만 계산: 5줄이 항상 들어오게 */
-  return Math.max(14, Math.floor(availH/5/1.55));
+  return Math.max(14, Math.floor(availH/5/1.55*0.8));
 }
 function calcFmWPP(){
   var trW=(document.getElementById('TR').offsetWidth)||375;
