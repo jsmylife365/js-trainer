@@ -14,7 +14,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
-html,body{width:100%;height:100%;background:#1a1a1a;display:flex;align-items:center;justify-content:center;font-family:-apple-system,'Malgun Gothic','Apple SD Gothic Neo',sans-serif;overflow:hidden;}
+html,body{width:100%;height:100%;background:#1a1a1a;display:flex;align-items:center;justify-content:center;font-family:-apple-system,'Malgun Gothic','Apple SD Gothic Neo',sans-serif;overflow:hidden;font-weight:500;}
 #app{
   /* 가로: 16:9 비율 유지, 세로: 전체 뷰포트 사용 */
   position:relative;
@@ -103,9 +103,9 @@ input[type=range]{flex:1;min-width:36px;max-width:90px;}
 #fmArea{display:none;position:absolute;top:0;left:0;width:100%;height:100%;padding:36px 4% 10px;box-sizing:border-box;overflow:hidden;background:#f0efe8;}
 #fmTitle{display:none;}
 #fmPageInfo{display:none;}
-#fmContent{font-size:clamp(22px,5.5vw,44px);line-height:1.85;word-break:keep-all;letter-spacing:.02em;overflow:hidden;max-height:100%;}
-.fm-w{color:#bbb;transition:color .04s;display:inline;word-break:keep-all;}
-.fm-w.on{color:#111 !important;font-weight:700;}
+#fmContent{font-size:clamp(18px,4.2vw,38px);line-height:2.0;word-break:keep-all;white-space:normal;overflow:hidden;max-height:calc(100% - 8px);font-weight:600;letter-spacing:.01em;}
+.fm-w{color:#bbb;transition:color .06s;font-weight:600;}
+.fm-w.on{color:#111 !important;font-weight:900;}
 #fmCompleteOV,#fmQuizOV,#fmResultOV{display:none;position:absolute;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.88);z-index:36;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:20px;box-sizing:border-box;}
 .fmBtn{font-size:14px;padding:10px 26px;border-radius:8px;cursor:pointer;}
 .fmOptBtn{width:100%;text-align:left;font-size:clamp(12px,1.8vw,15px);padding:10px 16px;background:rgba(255,255,255,.1);color:#fff;border:1px solid rgba(255,255,255,.25);border-radius:8px;cursor:pointer;transition:background .15s;}
@@ -742,22 +742,16 @@ function parseCSV(csv) {
     else if(isS){ if(!sentPool.find(function(s){return s.t===content;})) sentPool.push({t:content,lv:level}); }
   });
 
-  /* 장문 본문 → 자동 페이지 분할 (약 300자) */
-  var TARGET=220;
+  /* 낱말 수 기준 페이지 분할: 64낱말 = 8줄 × 8낱말 */
+  var WPP=64;
   readingChapters.forEach(function(ch){
-    var txt=(ch._text||'').trim();
-    while(txt.length>TARGET){
-      var cut=TARGET;
-      var seg=txt.substring(Math.max(0,TARGET-80),TARGET+80);
-      var m=seg.search(/[.!?。！？]\s/);
-      if(m>=0) cut=Math.max(0,TARGET-80)+m+1;
-      else{ var sp=txt.lastIndexOf(' ',TARGET); if(sp>TARGET*0.6) cut=sp; }
-      ch.pages.push(txt.substring(0,cut).trim());
-      txt=txt.substring(cut).trim();
+    var words=(ch._text||'').trim().split(/\s+/).filter(function(w){return w.length>0;});
+    ch.pages=[];
+    for(var pi=0;pi<words.length;pi+=WPP){
+      ch.pages.push(words.slice(pi,pi+WPP).join(' '));
     }
-    if(txt) ch.pages.push(txt);
     delete ch._text;
-  });
+  });;
 
   return {wordPool:wordPool, sentPool:sentPool, readingChapters:readingChapters};
 }
@@ -2120,11 +2114,13 @@ function fmLoadPageGray(pageIdx){
   const words=(fmChapter.pages[fmPageIdx]||'').split(/\s+/).filter(function(w){return w.length>0;});
   content.innerHTML='';
   fmSpans=[];
-  words.forEach(function(w){
+  words.forEach(function(w,wi){
     const sp=document.createElement('span');
-    sp.textContent=w+'\u00A0';
+    sp.textContent=w;
     sp.className='fm-w';
     content.appendChild(sp);
+    /* 단어 사이 일반 공백 (줄바꿈 허용) */
+    if(wi<words.length-1) content.appendChild(document.createTextNode(' '));
     fmSpans.push(sp);
   });
   document.getElementById('bb').textContent='0 / '+fmSpans.length;
