@@ -103,7 +103,7 @@ input[type=range]{flex:1;min-width:36px;max-width:90px;}
 #fmArea{display:none;position:absolute;top:0;left:0;width:100%;height:100%;padding:36px 4% 10px;box-sizing:border-box;overflow:hidden;background:#f0efe8;}
 #fmTitle{display:none;}
 #fmPageInfo{display:none;}
-#fmContent{font-size:clamp(18px,4.2vw,38px);line-height:1.55;word-break:keep-all;white-space:normal;overflow:hidden;max-height:calc(100% - 8px);font-weight:600;letter-spacing:.01em;}
+#fmContent{line-height:1.55;word-break:keep-all;white-space:normal;overflow:hidden;max-height:calc(100% - 8px);font-weight:600;letter-spacing:.01em;}
 .fm-w{color:#bbb;transition:color .06s;font-weight:600;}
 .fm-w.on{color:#111 !important;}
 #fmCompleteOV,#fmQuizOV,#fmResultOV{display:none;position:absolute;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.88);z-index:36;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:20px;box-sizing:border-box;}
@@ -227,13 +227,13 @@ body:fullscreen #app,body:-webkit-full-screen #app{width:100vw;height:100vh;bord
     <!-- FM 퀴즈 오버레이 -->
     <div id="fmQuizOV">
       <p id="fmQNum" style="color:rgba(255,255,255,.45);font-size:11px;"></p>
-      <p id="fmQText" style="color:#fff;font-size:clamp(14px,2.2vw,20px);font-weight:500;text-align:center;line-height:1.65;max-width:600px;"></p>
+      <p id="fmQText" style="color:#fff;font-size:clamp(18px,3vw,26px);font-weight:500;text-align:center;line-height:1.65;max-width:600px;"></p>
       <div id="fmQOpts" style="display:flex;flex-direction:column;gap:8px;width:100%;max-width:520px;"></div>
     </div>
     <!-- FM 결과 오버레이 -->
     <div id="fmResultOV">
       <p style="color:#FFE082;font-size:clamp(16px,2.8vw,26px);font-weight:700;">퀴즈 결과</p>
-      <p id="fmResultScore" style="color:#fff;font-size:clamp(30px,5.5vw,52px);font-weight:700;"></p>
+      <p id="fmResultScore" style="color:#fff;font-size:clamp(40px,7vw,64px);font-weight:700;"></p>
       <div id="fmResultList" style="width:100%;max-width:540px;max-height:46vh;overflow-y:auto;"></div>
       <button class="fmBtn" onclick="fullReset()" style="margin-top:6px;background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.4);">훈련 종료</button>
     </div>
@@ -253,9 +253,9 @@ body:fullscreen #app,body:-webkit-full-screen #app{width:100vw;height:100vh;bord
         <button id="ovB" onclick="handleOvBtn()" style="display:none;margin-top:8px;font-size:13px;padding:8px 26px;background:rgba(255,255,255,.15);color:#fff;border-color:rgba(255,255,255,.4);border-radius:8px;"></button>
       </div>
       <div id="ov-ans">
-        <p style="font-size:clamp(14px,1.9vw,18px);font-weight:500;color:#fff;text-align:center;margin-bottom:12px;">정답 확인</p>
+        <p style="font-size:clamp(18px,2.5vw,24px);font-weight:700;color:#fff;text-align:center;margin-bottom:14px;">정답 확인</p>
         <div id="ovRows" style="text-align:left;"></div>
-        <div id="ovQlTitle" style="display:none;font-size:13px;color:rgba(255,200,0,.85);font-weight:500;border-top:.5px solid rgba(255,255,255,.2);padding-top:10px;margin:8px 0;"></div>
+        <div id="ovQlTitle" style="display:none;font-size:16px;color:rgba(255,200,0,.85);font-weight:600;border-top:.5px solid rgba(255,255,255,.2);padding-top:12px;margin:10px 0;"></div>
         <div id="ovQl" style="margin-bottom:10px;"></div>
         <div style="text-align:center;margin-top:12px;">
           <button onclick="fullReset()" style="font-size:13px;padding:8px 24px;background:rgba(255,255,255,.15);color:#fff;border-color:rgba(255,255,255,.4);border-radius:8px;">훈련 종료</button>
@@ -886,6 +886,10 @@ function applyFS(on) {
   setTimeout(() => {
     upDims(); drawGrid();
     if (TM==='sentence' && (tState==='idle'||tState==='paused')) buildSlots();
+    if (TM==='focus'&&fmChapter&&fmSpans.length){
+      var fc=document.getElementById('fmContent');
+      if(fc) fc.style.fontSize=calcFmFontSize()+'px';
+    }
     if (tState==='running'||tState==='paused') {
       if (TM==='vision') { apSh(); plSh(posIdx); apCl(curColor); }
       else if (TM==='concentration'||TM==='memory') {
@@ -1400,12 +1404,12 @@ function showAnswers() {
     const div=document.createElement('div');
     div.style.cssText='margin-bottom:10px;padding:9px 13px;background:rgba(255,255,255,.07);border-radius:8px;border:.5px solid rgba(255,255,255,.14);';
     const lbl=document.createElement('p');
-    lbl.style.cssText='margin:0 0 6px;font-size:10px;color:rgba(255,255,255,.45);';
+    lbl.style.cssText='margin:0 0 8px;font-size:12px;color:rgba(255,255,255,.45);';
     lbl.textContent=labels[i]; div.appendChild(lbl);
     if (isS) {
       item.sents.forEach((s,si) => {
         const row=document.createElement('p');
-        row.style.cssText='margin:0 0 3px;font-size:clamp(11px,1.6vw,13px);color:#fff;font-family:"Malgun Gothic",sans-serif;display:flex;align-items:baseline;gap:5px;';
+        row.style.cssText='margin:0 0 5px;font-size:clamp(15px,2.2vw,20px);color:#fff;font-family:"Malgun Gothic",sans-serif;display:flex;align-items:baseline;gap:6px;';
         const ns=document.createElement('span');
         ns.style.cssText='font-size:10px;color:rgba(255,200,0,.7);min-width:14px;flex-shrink:0;';
         ns.textContent=(si+1)+'.';
@@ -1428,7 +1432,7 @@ function showAnswers() {
       } else {
         words.forEach(w => {
           const c=document.createElement('span');
-          c.style.cssText='font-size:clamp(12px,1.7vw,14px);font-weight:700;color:#fff;font-family:"Malgun Gothic",sans-serif;background:rgba(55,138,221,.38);border:.5px solid rgba(55,138,221,.55);border-radius:4px;padding:2px 9px;';
+          c.style.cssText='font-size:clamp(16px,2.4vw,22px);font-weight:700;color:#fff;font-family:"Malgun Gothic",sans-serif;background:rgba(55,138,221,.38);border:.5px solid rgba(55,138,221,.55);border-radius:4px;padding:4px 12px;';
           c.textContent=w; ww.appendChild(c);
         });
       }
@@ -1636,7 +1640,7 @@ function toggleStart() {
         tState='running'; btn.textContent='일시정지';
         fmWordIdx=0;
         fmSpans.forEach(function(sp){sp.className='fm-w';});
-        fmTimer=setTimeout(fmStep,800);
+        fmTimer=setTimeout(fmStep,0);
       } else {
         startFocusTraining();
       }
@@ -1729,6 +1733,11 @@ function init() {
 window.addEventListener('resize', () => {
   upDims(); drawGrid();
   if (TM==='sentence'&&(tState==='idle'||tState==='paused')) buildSlots();
+  if (TM==='focus'&&fmChapter&&fmSpans.length){
+    /* 리사이즈 시 폰트 재계산 */
+    var fc=document.getElementById('fmContent');
+    if(fc) fc.style.fontSize=calcFmFontSize()+'px';
+  }
   if (tState==='running'||tState==='paused') {
     if (TM==='vision') { apSh(); plSh(posIdx); apCl(curColor); }
     else if (TM==='concentration'||TM==='memory') {
@@ -2101,26 +2110,40 @@ function startFocusTraining(){
   updDotArea();
 }
 
+/* 동적 폰트 크기: 훈련 영역에 정확히 5줄 맞추기 */
+function calcFmFontSize(){
+  var trEl=document.getElementById('TR');
+  var trH=trEl.offsetHeight, trW=trEl.offsetWidth;
+  /* 상단 바(32px) + 상하 패딩(46px) 제외 */
+  var availH=trH-32-46;
+  var LINE_COUNT=5;
+  /* 높이 기준: availH / 5줄 / line-height(1.55) */
+  var fsH=Math.floor(availH/LINE_COUNT/1.55);
+  /* 너비 기준: 한 줄에 8낱말, 한국어 글자 폭 ≈ font-size × 1.05
+     8낱말 × 평균 4글자 = 32글자, 여백 포함 35글자 */
+  var fsW=Math.floor(trW*0.92/35/1.05);
+  return Math.max(12, Math.min(fsH, fsW));
+}
+
 /* 페이지를 회색으로만 표시 (점멸 없이) */
 function fmLoadPageGray(pageIdx){
   fmPageIdx=pageIdx; fmWordIdx=0;
   clearTimeout(fmTimer);
-  const content=document.getElementById('fmContent');
-  const titleEl=document.getElementById('fmTitle');
-  const pageInfo=document.getElementById('fmPageInfo');
-  /* 제목/페이지 정보는 상단 뱃지에만 표시 */
+  var content=document.getElementById('fmContent');
+  /* 동적 폰트 크기 적용 */
+  var fs=calcFmFontSize();
+  content.style.fontSize=fs+'px';
   document.getElementById('ba').textContent='페이지 '+(fmPageIdx+1)+'/'+fmChapter.pages.length;
   document.getElementById('bc').textContent=(fmPageIdx+1)+'p';
   document.getElementById('bc').style.borderColor='#2a9e00';
-  const words=(fmChapter.pages[fmPageIdx]||'').split(/\s+/).filter(function(w){return w.length>0;});
+  var words=(fmChapter.pages[fmPageIdx]||'').split(/\s+/).filter(function(w){return w.length>0;});
   content.innerHTML='';
   fmSpans=[];
   words.forEach(function(w,wi){
-    const sp=document.createElement('span');
+    var sp=document.createElement('span');
     sp.textContent=w;
     sp.className='fm-w';
     content.appendChild(sp);
-    /* 단어 사이 일반 공백 (줄바꿈 허용) */
     if(wi<words.length-1) content.appendChild(document.createTextNode(' '));
     fmSpans.push(sp);
   });
@@ -2132,7 +2155,7 @@ function fmLoadPageGray(pageIdx){
 function fmLoadPage(pageIdx){
   fmLoadPageGray(pageIdx);
   /* 점멸 시작 */
-  fmTimer=setTimeout(function(){if(tState==='running')fmStep();},1200);
+  fmTimer=setTimeout(function(){if(tState==='running')fmStep();},0);
 }
 
 /* 단어 점멸 애니메이션 */
@@ -2155,16 +2178,13 @@ function fmStep(){
   fmTimer=setTimeout(fmStep, SPD[spd].ms);
 }
 
-/* 페이지 완료 */
+/* 페이지 완료 - 딜레이 없이 즉시 다음 페이지 */
 function fmPageDone(){
   fmSpans.forEach(function(sp){sp.className='fm-w';});
   if(fmPageIdx+1<fmChapter.pages.length){
-    /* 다음 페이지 잠깐 회색 표시 후 점멸 */
-    setTimeout(function(){
-      if(tState!=='running') return;
-      fmLoadPageGray(fmPageIdx+1);
-      fmTimer=setTimeout(fmStep,1000);
-    },600);
+    fmLoadPageGray(fmPageIdx+1);
+    fmWordIdx=0;
+    fmStep(); /* setTimeout 없이 즉시 실행 */
   }else{
     tState='thinking';
     document.getElementById('btnSt').textContent='시작';
@@ -2208,7 +2228,7 @@ function fmShowQuestion(){
   q.opts.forEach((opt,i)=>{
     if(!opt) return;
     const btn=document.createElement('button');
-    btn.className='fmOptBtn';
+    btn.className='fmOptBtn'; btn.style.fontSize='clamp(16px,2.5vw,22px)';
     btn.textContent=(i+1)+'. '+opt;
     btn.onclick=()=>fmAnswer(i);
     opts.appendChild(btn);
@@ -2248,9 +2268,9 @@ function fmShowResults(){
     const ok=q.userAns===q.ans;
     const div=document.createElement('div');
     div.style.cssText='padding:9px 12px;margin-bottom:6px;background:rgba(255,255,255,.07);border-radius:7px;border-left:3px solid '+(ok?'#66FF33':'#ff6b6b')+';';
-    div.innerHTML='<p style="font-size:11px;color:'+(ok?'#99FF66':'#ff9999')+';font-weight:700;margin-bottom:3px;">'+(ok?'✓ 정답':'✗ 오답')+'  문제 '+(i+1)+'</p>'
-      +'<p style="font-size:clamp(11px,1.5vw,13px);color:#fff;margin-bottom:3px;">'+q.q+'</p>'
-      +'<p style="font-size:11px;color:rgba(255,255,255,.6);">정답: '+(q.ans+1)+'. '+q.opts[q.ans]
+    div.innerHTML='<p style="font-size:13px;color:'+(ok?'#99FF66':'#ff9999')+';font-weight:700;margin-bottom:4px;">'+(ok?'✓ 정답':'✗ 오답')+'  문제 '+(i+1)+'</p>'
+      +'<p style="font-size:clamp(15px,2.2vw,20px);color:#fff;margin-bottom:5px;">'+q.q+'</p>'
+      +'<p style="font-size:13px;color:rgba(255,255,255,.6);">정답: '+(q.ans+1)+'. '+q.opts[q.ans]
       +(q.userAns!==q.ans&&q.userAns>=0?' &nbsp;|&nbsp; 선택: '+(q.userAns+1)+'. '+q.opts[q.userAns]:'')+'</p>';
     list.appendChild(div);
   });
