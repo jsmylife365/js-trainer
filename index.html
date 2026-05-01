@@ -1637,7 +1637,7 @@ function toggleStart() {
       if(fmChapter&&fmSpans.length) {
         /* 텍스트 이미 표시됨 → 점멸 시작 */
         tState='running'; btn.textContent='일시정지';
-        fmWordIdx=0;
+        fmWordIdx=0; ding();
         fmSpans.forEach(function(sp){sp.className='fm-w';});
         fmTimer=setTimeout(fmStep,0);
       } else {
