@@ -1,13 +1,13 @@
 {
   "name": "JS 집중력·기억력 향상훈련",
   "short_name": "JS훈련",
-  "description": "시력강화·집중력·기억력·문장기억·독서능력 향상 5가지 뇌 훈련 앱. 성경 확장팩 무료 제공.",
-  "start_url": "/index.html",
-  "scope": "/",
+  "description": "시력강화·집중력·기억력·문장기억·독서능력 5가지 뇌 훈련 앱. 성경 확장팩 무료 제공.",
+  "start_url": "https://jsmylife365.github.io/js-trainer/index.html",
+  "scope": "https://jsmylife365.github.io/js-trainer/",
   "display": "standalone",
   "orientation": "any",
   "background_color": "#1a1a1a",
-  "theme_color": "#1a1a1a",
+  "theme_color": "#99FF66",
   "lang": "ko-KR",
   "categories": ["education", "health", "lifestyle"],
   "icons": [
@@ -19,10 +19,5 @@
     { "src": "icons/icon-192.png",  "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
     { "src": "icons/icon-384.png",  "sizes": "384x384", "type": "image/png", "purpose": "any maskable" },
     { "src": "icons/icon-512.png",  "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
-  ],
-  "screenshots": [
-    { "src": "screenshots/screen1.png", "sizes": "1280x720", "type": "image/png", "form_factor": "wide", "label": "시력강화 훈련" },
-    { "src": "screenshots/screen2.png", "sizes": "1280x720", "type": "image/png", "form_factor": "wide", "label": "문장기억 훈련" },
-    { "src": "screenshots/screen3.png", "sizes": "720x1280", "type": "image/png", "form_factor": "narrow", "label": "모바일 화면" }
   ]
 }
