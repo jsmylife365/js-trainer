@@ -2,7 +2,7 @@
   "name": "JS 집중력·기억력 향상훈련",
   "short_name": "JS훈련",
   "description": "시력강화·집중력·기억력·문장기억·독서능력 향상 5가지 뇌 훈련 앱. 성경 확장팩 무료 제공.",
-  "start_url": "js-trainer/index.html",
+  "start_url": "/index.html",
   "scope": "/",
   "display": "standalone",
   "orientation": "any",
