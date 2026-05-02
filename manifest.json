@@ -2,8 +2,8 @@
   "name": "JS 집중력·기억력 향상훈련",
   "short_name": "JS훈련",
   "description": "시력강화·집중력·기억력·문장기억·독서능력 5가지 뇌 훈련 앱. 성경 확장팩 무료 제공.",
-  "start_url": "https://jsmylife365.github.io/js-trainer/index.html",
-  "scope": "https://jsmylife365.github.io/js-trainer/",
+  "start_url": "/js-trainer/index.html",
+  "scope": "/js-trainer/",
   "display": "standalone",
   "orientation": "any",
   "background_color": "#1a1a1a",
@@ -11,13 +11,13 @@
   "lang": "ko-KR",
   "categories": ["education", "health", "lifestyle"],
   "icons": [
-    { "src": "icons/icon-72.png",   "sizes": "72x72",   "type": "image/png", "purpose": "any maskable" },
-    { "src": "icons/icon-96.png",   "sizes": "96x96",   "type": "image/png", "purpose": "any maskable" },
-    { "src": "icons/icon-128.png",  "sizes": "128x128", "type": "image/png", "purpose": "any maskable" },
-    { "src": "icons/icon-144.png",  "sizes": "144x144", "type": "image/png", "purpose": "any maskable" },
-    { "src": "icons/icon-152.png",  "sizes": "152x152", "type": "image/png", "purpose": "any maskable" },
-    { "src": "icons/icon-192.png",  "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
-    { "src": "icons/icon-384.png",  "sizes": "384x384", "type": "image/png", "purpose": "any maskable" },
-    { "src": "icons/icon-512.png",  "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+    { "src": "/js-trainer/icons/icon-72.png",   "sizes": "72x72",   "type": "image/png", "purpose": "any maskable" },
+    { "src": "/js-trainer/icons/icon-96.png",   "sizes": "96x96",   "type": "image/png", "purpose": "any maskable" },
+    { "src": "/js-trainer/icons/icon-128.png",  "sizes": "128x128", "type": "image/png", "purpose": "any maskable" },
+    { "src": "/js-trainer/icons/icon-144.png",  "sizes": "144x144", "type": "image/png", "purpose": "any maskable" },
+    { "src": "/js-trainer/icons/icon-152.png",  "sizes": "152x152", "type": "image/png", "purpose": "any maskable" },
+    { "src": "/js-trainer/icons/icon-192.png",  "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "/js-trainer/icons/icon-384.png",  "sizes": "384x384", "type": "image/png", "purpose": "any maskable" },
+    { "src": "/js-trainer/icons/icon-512.png",  "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
   ]
 }
