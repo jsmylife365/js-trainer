@@ -2038,17 +2038,20 @@ function parseFocusData(csv){
              2) 모든 sheetsData의 readingChapters
              3) focusChapters (구버전 호환) */
 function getFmChapters(){
-  /* sheetsData 전체에서 readingChapters 수집 */
+  /* 현재 선택된 데이터팩의 readingChapters만 반환 */
+  if(activeDS!=='default'&&sheetsData[activeDS]){
+    const d=sheetsData[activeDS];
+    if(d.readingChapters&&d.readingChapters.length) return d.readingChapters;
+    if(d.focusChapters&&d.focusChapters.length) return d.focusChapters;
+    /* 선택된 팩에 장문 없음 → 빈 배열 반환 (다른 팩 검색 안 함) */
+    return [];
+  }
+  /* 기본(내장) 선택 시: 전체에서 검색 */
   const all=[];
   Object.keys(sheetsData).forEach(k=>{
     const d=sheetsData[k];
     if(d.readingChapters&&d.readingChapters.length) all.push(...d.readingChapters);
-  });
-  if(all.length) return all;
-  /* 구버전 focusChapters 호환 */
-  Object.keys(sheetsData).forEach(k=>{
-    const d=sheetsData[k];
-    if(d.focusChapters&&d.focusChapters.length) all.push(...d.focusChapters);
+    else if(d.focusChapters&&d.focusChapters.length) all.push(...d.focusChapters);
   });
   return all;
 }
@@ -2057,7 +2060,17 @@ function getFmChapters(){
 function startFocusTraining(){
   const chapters=getFmChapters();
   if(!chapters.length){
-    /* GitHub에서 한글_일반.csv 자동 로드 */
+    /* activeDS에 따라 다른 처리 */
+    if(activeDS!=='default'){
+      /* 선택된 팩에 독서 자료 없음 → 안내 메시지 */
+      showOvMsg();
+      setOv('독서 자료 없음','','',
+        '"'+activeDS+'" 팩에는 독서훈련 자료가 없습니다.\n한글_일반(확장) 팩을 선택하세요.','닫기');
+      document.getElementById('ovB').style.display='block';
+      document.getElementById('ovB').onclick=function(){OV.style.display='none';fullReset();};
+      OV.style.display='flex'; tState='thinking'; return;
+    }
+    /* 기본(내장) 선택 시: GitHub에서 한글_일반.csv 자동 로드 */
     showOvMsg();
     setOv('독서능력 향상','','','데이터를 불러오는 중...','');
     document.getElementById('ovB').style.display='none';
