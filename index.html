@@ -100,10 +100,10 @@ input[type=range]{flex:1;min-width:36px;max-width:90px;}
 /* DS badge */
 #dsBadge{position:absolute;bottom:8px;left:8px;z-index:10;font-size:10px;background:rgba(255,255,255,.92);border:.5px solid #ddd;border-radius:4px;padding:2px 8px;color:#666;display:flex;align-items:center;gap:4px;}
 /* 집중기억 훈련 */
-#fmArea{display:none;position:absolute;top:0;left:0;width:100%;height:100%;padding:36px 4% 10px;box-sizing:border-box;overflow:hidden;background:#f0efe8;}
+#fmArea{display:none;position:absolute;top:32px;left:0;width:100%;height:calc(100% - 32px);padding:6px 4% 44px;box-sizing:border-box;overflow:hidden;background:#f0efe8;}
 #fmTitle{display:none;}
 #fmPageInfo{display:none;}
-#fmContent{line-height:1.55;word-break:keep-all;white-space:normal;overflow:hidden;max-height:calc(100% - 8px);font-weight:600;letter-spacing:.01em;}
+#fmContent{line-height:1.50;word-break:keep-all;white-space:normal;overflow:hidden;max-height:calc(100% - 8px);font-weight:600;letter-spacing:.01em;}
 .fm-w{color:#bbb;transition:color .06s;font-weight:600;}
 .fm-w.on{color:#111 !important;}
 #fmCompleteOV,#fmQuizOV,#fmResultOV{display:none;position:absolute;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.88);z-index:36;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:20px;box-sizing:border-box;}
@@ -406,8 +406,8 @@ body:fullscreen #app,body:-webkit-full-screen #app{width:100vw;height:100vh;bord
         <p style="background:#F3F3F3;padding:7px 10px;border-radius:5px;font-family:monospace;font-size:11px;word-break:break-all;margin-bottom:10px;">https://jsmylife365.github.io/js-trainer/</p>
         <h4>사용 가능한 데이터 팩</h4>
         <ul style="margin-bottom:10px;">
-          <li><b>한글_일반.csv</b> — 일반 한국어 낱말(5만 개) 및 문장(3만 개)</li>
-          <li><b>성경_창세기.csv ~ 성경_요한계시록.csv</b> — 성경 66권 전체 개별 팩</li>
+          <li><b>한글_일반.csv</b> — 일반 한국어 낱말(5만 개)+문장(3만 개)+독서자료(퀴즈포함)</li>
+          <li><b>성경_창세기.csv &amp; 성경_마태복음.csv</b> — 성경 모세5경+4복음서 (낱말, 문장, 읽기훈련과 퀴즈가 포함된 개별팩)</li>
         </ul>
         <p style="font-size:11px;color:#888;">예) 한글 일반팩 URL:<br>
         <span style="font-family:monospace;word-break:break-all;">https://jsmylife365.github.io/js-trainer/한글_일반.csv</span></p>
@@ -2038,17 +2038,20 @@ function parseFocusData(csv){
              2) 모든 sheetsData의 readingChapters
              3) focusChapters (구버전 호환) */
 function getFmChapters(){
-  /* sheetsData 전체에서 readingChapters 수집 */
+  /* 현재 선택된 데이터팩의 readingChapters만 반환 */
+  if(activeDS!=='default'&&sheetsData[activeDS]){
+    const d=sheetsData[activeDS];
+    if(d.readingChapters&&d.readingChapters.length) return d.readingChapters;
+    if(d.focusChapters&&d.focusChapters.length) return d.focusChapters;
+    /* 선택된 팩에 장문 없음 → 빈 배열 반환 (다른 팩 검색 안 함) */
+    return [];
+  }
+  /* 기본(내장) 선택 시: 전체에서 검색 */
   const all=[];
   Object.keys(sheetsData).forEach(k=>{
     const d=sheetsData[k];
     if(d.readingChapters&&d.readingChapters.length) all.push(...d.readingChapters);
-  });
-  if(all.length) return all;
-  /* 구버전 focusChapters 호환 */
-  Object.keys(sheetsData).forEach(k=>{
-    const d=sheetsData[k];
-    if(d.focusChapters&&d.focusChapters.length) all.push(...d.focusChapters);
+    else if(d.focusChapters&&d.focusChapters.length) all.push(...d.focusChapters);
   });
   return all;
 }
@@ -2057,7 +2060,17 @@ function getFmChapters(){
 function startFocusTraining(){
   const chapters=getFmChapters();
   if(!chapters.length){
-    /* GitHub에서 한글_일반.csv 자동 로드 */
+    /* activeDS에 따라 다른 처리 */
+    if(activeDS!=='default'){
+      /* 선택된 팩에 독서 자료 없음 → 안내 메시지 */
+      showOvMsg();
+      setOv('독서 자료 없음','','',
+        '"'+activeDS+'" 팩에는 독서훈련 자료가 없습니다.\n한글_일반(확장) 팩을 선택하세요.','닫기');
+      document.getElementById('ovB').style.display='block';
+      document.getElementById('ovB').onclick=function(){OV.style.display='none';fullReset();};
+      OV.style.display='flex'; tState='thinking'; return;
+    }
+    /* 기본(내장) 선택 시: GitHub에서 한글_일반.csv 자동 로드 */
     showOvMsg();
     setOv('독서능력 향상','','','데이터를 불러오는 중...','');
     document.getElementById('ovB').style.display='none';
@@ -2115,16 +2128,23 @@ function startFocusTraining(){
 function calcFmFontSize(){
   var trEl=document.getElementById('TR');
   var trH=trEl.offsetHeight||500;
-  var availH=Math.max(150, trH-80);
-  /* 높이 기준으로만 계산: 5줄이 항상 들어오게 */
-  return Math.max(14, Math.floor(availH/5/1.55*0.8));
+  var trW=trEl.offsetWidth||375;
+  /* 높이 기준: 7줄 + 상단바(32) + 여백(50) */
+  var availH=Math.max(100, trH-32-50);
+  var fsH=Math.floor(availH/7/1.50);
+  /* 너비 기준: 한 줄 평균 9글자, 한국어 폭 ≈ fs*0.95, 좌우 패딩 8% */
+  var fsW=Math.floor(trW*0.88/(9*0.95));
+  /* 둘 중 작은 값 선택 → 가로/세로 모두 이탈 없음 */
+  return Math.max(10, Math.min(fsH, fsW));
 }
 function calcFmWPP(){
-  var trW=(document.getElementById('TR').offsetWidth)||375;
+  var trEl=document.getElementById('TR');
+  var trW=trEl.offsetWidth||375;
   var fs=calcFmFontSize();
-  /* 한국어 글자 폭 ≈ font-size × 0.95, 평균 낱말 3.5글자 */
-  var wordsPerLine=Math.max(2,Math.floor(trW*0.88/(fs*0.95*3.5)));
-  return Math.max(5, wordsPerLine*5);
+  /* 한국어 글자 폭 ≈ font-size * 0.92, 평균 낱말 3글자 + 공백 */
+  var wordsPerLine=Math.max(2, Math.floor(trW*0.90/(fs*0.92*3.2)));
+  /* 7줄 × 줄당낱말수 = 페이지당 낱말수 */
+  return wordsPerLine*7;
 }
 
 /* 페이지를 회색으로만 표시 — 동적 WPP */
