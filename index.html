@@ -2147,32 +2147,47 @@ function calcFmWPP(){
   return wordsPerLine*7;
 }
 
-/* 페이지를 회색으로만 표시 — 동적 WPP */
+/* 페이지를 회색으로만 표시 — 렌더링 후 overflow 자동 감지 */
+function renderFmWords(content, words){
+  content.innerHTML=''; fmSpans=[];
+  words.forEach(function(w,wi){
+    var sp=document.createElement('span');
+    sp.textContent=w; sp.className='fm-w';
+    content.appendChild(sp);
+    if(wi<words.length-1) content.appendChild(document.createTextNode(' '));
+    fmSpans.push(sp);
+  });
+}
 function fmLoadPageGray(wordStart){
   fmWordStart = wordStart||0;
   fmWordIdx = 0;
   clearTimeout(fmTimer);
-  var wpp = calcFmWPP();
-  var pageWords = fmChWords.slice(fmWordStart, fmWordStart+wpp);
-  var totalPages = Math.ceil(fmChWords.length/wpp)||1;
-  fmPageIdx = Math.floor(fmWordStart/wpp);
-  /* 동적 폰트 크기 */
   var fs = calcFmFontSize();
   var content = document.getElementById('fmContent');
   content.style.fontSize = fs+'px';
+  var trEl = document.getElementById('TR');
+  var maxH = trEl.offsetHeight - 32 - 50; /* 사용 가능 높이 */
+
+  /* 초기 WPP로 시도 */
+  var wpp = calcFmWPP();
+  var pageWords = fmChWords.slice(fmWordStart, fmWordStart+wpp);
+  renderFmWords(content, pageWords);
+
+  /* overflow 감지: 실제 높이 > 사용가능 높이면 낱말 줄여서 재시도 */
+  var attempts = 0;
+  while(content.scrollHeight > maxH && fmSpans.length > 2 && attempts < 20){
+    wpp = Math.max(2, Math.floor(wpp*0.92)); /* 8%씩 줄이기 */
+    pageWords = fmChWords.slice(fmWordStart, fmWordStart+wpp);
+    renderFmWords(content, pageWords);
+    attempts++;
+  }
+
+  var totalPages = Math.ceil(fmChWords.length/wpp)||1;
+  fmPageIdx = Math.floor(fmWordStart/Math.max(1,calcFmWPP()));
+
   document.getElementById('ba').textContent='페이지 '+(fmPageIdx+1)+'/'+totalPages;
   document.getElementById('bc').textContent=(fmPageIdx+1)+'p';
   document.getElementById('bc').style.borderColor='#2a9e00';
-  content.innerHTML='';
-  fmSpans=[];
-  pageWords.forEach(function(w,wi){
-    var sp=document.createElement('span');
-    sp.textContent=w;
-    sp.className='fm-w';
-    content.appendChild(sp);
-    if(wi<pageWords.length-1) content.appendChild(document.createTextNode(' '));
-    fmSpans.push(sp);
-  });
   document.getElementById('bb').textContent='0 / '+fmSpans.length;
   updDotArea();
 }
@@ -2207,8 +2222,8 @@ function fmStep(){
 /* 페이지 완료 */
 function fmPageDone(){
   fmSpans.forEach(function(sp){sp.className='fm-w';});
-  var wpp=calcFmWPP();
-  var nextStart=fmWordStart+wpp;
+  /* 실제 이번 페이지에 표시된 낱말 수 기준으로 다음 시작점 계산 */
+  var nextStart=fmWordStart+fmSpans.length;
   if(nextStart<fmChWords.length){
     fmLoadPageGray(nextStart);
     fmWordIdx=0;
@@ -2217,7 +2232,7 @@ function fmPageDone(){
     tState='thinking';
     document.getElementById('btnSt').textContent='시작';
     document.getElementById('fmCompleteOV').style.display='flex';
-    var totalPages=Math.ceil(fmChWords.length/wpp)||1;
+    var totalPages=document.getElementById('ba').textContent.split('/')[1]||'?';
     document.getElementById('fmCompInfo').textContent='총 '+totalPages+'페이지 완독 🎉';
     addScore(1);
     ding();
