@@ -103,7 +103,7 @@ input[type=range]{flex:1;min-width:36px;max-width:90px;}
 #fmArea{display:none;position:absolute;top:32px;left:0;width:100%;height:calc(100% - 32px);padding:6px 4% 44px;box-sizing:border-box;overflow:hidden;background:#f0efe8;}
 #fmTitle{display:none;}
 #fmPageInfo{display:none;}
-#fmContent{line-height:1.50;word-break:keep-all;white-space:normal;overflow:hidden;max-height:calc(100% - 8px);font-weight:600;letter-spacing:.01em;}
+#fmContent{line-height:1.50;word-break:keep-all;white-space:pre-wrap;overflow:hidden;max-height:calc(100% - 8px);font-weight:600;letter-spacing:.01em;}
 .fm-w{color:#d5d5d5;transition:color .06s;font-weight:600;}
 .fm-w.on{color:#111 !important;}
 #fmCompleteOV,#fmQuizOV,#fmResultOV{display:none;position:absolute;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.88);z-index:36;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:20px;box-sizing:border-box;}
@@ -682,7 +682,6 @@ function extractLabel(url) {
 }
 
 function parseCSV(csv) {
-  /* 멀티라인 따옴표 포함 CSV 파서 */
   var clean=csv.replace(/\r\n/g,'\n').replace(/\r/g,'\n');
   var rows=[],row=[],cur='',inQ=false;
   for(var k=0;k<clean.length;k++){
@@ -695,71 +694,76 @@ function parseCSV(csv) {
   if(cur||row.length){row.push(cur.trim());if(row.join('').trim())rows.push(row);}
 
   var wordPool=[],sentPool=[],readingChapters=[],curCh=null;
-  var isHdr=rows[0]&&(rows[0][0]||'').toLowerCase().includes('내용')||
-            (rows[0]&&(rows[0][1]||'').toLowerCase().includes('종류'));
+  var inReading=false;
+  var isHdr=rows[0]&&(rows[0][0]||'').toLowerCase().includes('내용');
   var dataRows=isHdr?rows.slice(1):rows;
 
   dataRows.forEach(function(cols){
     var content=(cols[0]||'').trim();
     var kind=(cols[1]||'').trim();
     var level=(cols[2]||'중').trim();
-    if(!content) return;
+    if(!content&&!kind) return;
 
-    /* 장문 타입 처리 */
+    /* 장문제목 → 새 챕터 시작 */
     if(kind==='장문제목'){
-      curCh={title:content,pages:[],questions:[],_text:''};
+      curCh={title:content.replace(/【|】/g,'').trim(),pages:[],questions:[],_text:''};
       readingChapters.push(curCh);
-      return;
+      inReading=true; return;
     }
-    if(kind==='장문본문'){
-      /* 장문본문이 새로 오면 항상 새 챕터 시작 (장문제목 없어도 됨) */
-      if(!curCh||curCh._text){
-        /* 본문 첫 줄에서 제목 추출 (【제목】 형식 또는 첫 문장) */
-        var autoTitle='독서 훈련 '+(readingChapters.length+1)+'편';
-        var titleMatch=content.match(/【([^】]+)】/);
-        if(titleMatch) autoTitle=titleMatch[1];
-        curCh={title:autoTitle,pages:[],questions:[],_text:''};
-        readingChapters.push(curCh);
-      }
-      curCh._text+=(curCh._text?' ':'')+content;
-      return;
-    }
-    if(kind==='장문퀴즈'){
-      if(!curCh){ curCh={title:'독서 훈련 '+(readingChapters.length+1)+'편',pages:[],questions:[],_text:''}; readingChapters.push(curCh); }
+    /* 장문퀴즈 */
+    if(kind==='장문퀴즈'&&curCh){
       var parts=content.split('|');
       if(parts.length>=6){
-        curCh.questions.push({
-          q:parts[0].trim(),
+        curCh.questions.push({q:parts[0].trim(),
           opts:[parts[1].trim(),parts[2].trim(),parts[3].trim(),parts[4].trim()],
-          ans:Math.max(0,parseInt(parts[5].trim())-1),
-          userAns:-1
-        });
+          ans:Math.max(0,parseInt(parts[5].trim())-1),userAns:-1});
       }
+      return;
+    }
+    /* 장문퀴즈인데 kind가 없는 경우: content에 | 5개 이상 + 숫자 끝 */
+    if(curCh&&inReading&&kind!=='낱말'&&kind!=='문장'){
+      var pipeCount=(content.match(/\|/g)||[]).length;
+      if(pipeCount>=4&&/\|\d$/.test(content)){
+        var parts2=content.split('|');
+        curCh.questions.push({q:parts2[0].trim(),
+          opts:[parts2[1].trim(),parts2[2].trim(),parts2[3].trim(),parts2[4].trim()],
+          ans:Math.max(0,parseInt(parts2[5]||'1').trim()-1),userAns:-1});
+        return;
+      }
+    }
+    /* 장문 섹션 내 본문 텍스트 (종류 없음) */
+    if(inReading&&curCh&&kind!=='낱말'&&kind!=='문장'){
+      /* 소제목(▶)은 줄바꿈으로 처리 */
+      if(content.startsWith('▶')){
+        curCh._text+='\n'+content+'\n'; return;
+      }
+      curCh._text+=(curCh._text?'\n':'')+content;
       return;
     }
 
     /* 기존 낱말/문장 처리 */
+    inReading=false;
     var isW=kind==='낱말'||kind==='word'||kind==='단어'||kind==='w';
     var isS=kind==='문장'||kind==='sentence'||kind==='s';
     if(!isW&&!isS){
-      var len=content.replace(/\s/g,'').length;
+      var ln=content.replace(/\s/g,'').length;
       var wc=content.split(' ').length;
-      if(len<=6&&wc===1) isW=true; else isS=true;
+      if(ln<=6&&wc===1) isW=true; else isS=true;
     }
-    if(isW){ var ln=content.replace(/\s/g,'').length; if(ln>=2&&ln<=6&&!wordPool.includes(content)) wordPool.push(content); }
+    if(isW){ var ln2=content.replace(/\s/g,'').length; if(ln2>=2&&ln2<=6&&!wordPool.includes(content)) wordPool.push(content); }
     else if(isS){ if(!sentPool.find(function(s){return s.t===content;})) sentPool.push({t:content,lv:level}); }
   });
 
-  /* 낱말 수 기준 페이지 분할: 64낱말 = 8줄 × 8낱말 */
-  var WPP=40;
+  /* 페이지 분할 */
+  var WPP=64;
   readingChapters.forEach(function(ch){
-    var words=(ch._text||'').trim().split(/\s+/).filter(function(w){return w.length>0;});
-    ch.pages=[];
-    for(var pi=0;pi<words.length;pi+=WPP){
-      ch.pages.push(words.slice(pi,pi+WPP).join(' '));
-    }
+    var words=(ch._text||'').trim().split(/(\n)/).reduce(function(arr,seg){
+      if(seg==='\n'){arr.push('\n');return arr;}
+      return arr.concat(seg.split(/\s+/).filter(function(w){return w.length>0;}));
+    },[]);
+    ch.pages=[words.join(' ')];
     delete ch._text;
-  });;
+  });
 
   return {wordPool:wordPool, sentPool:sentPool, readingChapters:readingChapters};
 }
@@ -2113,7 +2117,11 @@ function startFocusTraining(){
   fmChapter=chapters[Math.floor(Math.random()*chapters.length)];
   /* 낱말 배열 초기화 */
   var rawText=fmChapter.pages.join(' ');
-  fmChWords=rawText.split(/\s+/).filter(function(w){return w.length>0;});
+  /* \n을 토큰으로 보존해서 단락 구분 표시 */
+  fmChWords=rawText.split(/(\n)/).reduce(function(arr,seg){
+    if(seg==='\n'){arr.push('\n');return arr;}
+    return arr.concat(seg.split(/\s+/).filter(function(w){return w.length>0;}));
+  },[]);
   fmPageIdx=0; fmWordIdx=0; fmWordStart=0; fmSpans=[];
   fmQuestions=[]; fmQIdx=0; fmScore=0;
 
@@ -2159,6 +2167,11 @@ function calcFmWPP(){
 function renderFmWords(content, words){
   content.innerHTML=''; fmSpans=[];
   words.forEach(function(w,wi){
+    if(w==='\n'||w===''){
+      /* 줄바꿈 토큰 → <br> */
+      content.appendChild(document.createElement('br'));
+      return;
+    }
     var sp=document.createElement('span');
     sp.textContent=w; sp.className='fm-w';
     content.appendChild(sp);
