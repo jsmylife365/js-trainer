@@ -712,12 +712,20 @@ function parseCSV(csv) {
       return;
     }
     if(kind==='장문본문'){
-      if(!curCh){ curCh={title:'독서 훈련',pages:[],questions:[],_text:''}; readingChapters.push(curCh); }
+      /* 장문본문이 새로 오면 항상 새 챕터 시작 (장문제목 없어도 됨) */
+      if(!curCh||curCh._text){
+        /* 본문 첫 줄에서 제목 추출 (【제목】 형식 또는 첫 문장) */
+        var autoTitle='독서 훈련 '+(readingChapters.length+1)+'편';
+        var titleMatch=content.match(/【([^】]+)】/);
+        if(titleMatch) autoTitle=titleMatch[1];
+        curCh={title:autoTitle,pages:[],questions:[],_text:''};
+        readingChapters.push(curCh);
+      }
       curCh._text+=(curCh._text?' ':'')+content;
       return;
     }
     if(kind==='장문퀴즈'){
-      if(!curCh){ curCh={title:'독서 훈련',pages:[],questions:[],_text:''}; readingChapters.push(curCh); }
+      if(!curCh){ curCh={title:'독서 훈련 '+(readingChapters.length+1)+'편',pages:[],questions:[],_text:''}; readingChapters.push(curCh); }
       var parts=content.split('|');
       if(parts.length>=6){
         curCh.questions.push({
