@@ -100,7 +100,7 @@ input[type=range]{flex:1;min-width:36px;max-width:90px;}
 /* DS badge */
 #dsBadge{position:absolute;bottom:8px;left:8px;z-index:10;font-size:10px;background:rgba(255,255,255,.92);border:.5px solid #ddd;border-radius:4px;padding:2px 8px;color:#666;display:flex;align-items:center;gap:4px;}
 /* 집중기억 훈련 */
-#fmArea{display:none;position:absolute;top:32px;left:0;width:100%;height:calc(100% - 32px);padding:6px 4% 44px;box-sizing:border-box;overflow:hidden;background:#f0efe8;}
+#fmArea{display:none;position:absolute;top:32px;left:0;width:100%;height:calc(100% - 32px);padding:4px 4% 44px;box-sizing:border-box;overflow:hidden;background:#f0efe8;}
 #fmTitle{display:none;}
 #fmPageInfo{display:none;}
 #fmContent{line-height:1.50;word-break:keep-all;white-space:pre-wrap;overflow:hidden;max-height:calc(100% - 8px);font-weight:600;letter-spacing:.01em;}
@@ -213,6 +213,7 @@ body:fullscreen #app,body:-webkit-full-screen #app{width:100vw;height:100vh;bord
 
     <!-- 집중기억 훈련 영역 -->
     <div id="fmArea">
+      <div id="fmTitleBar" style="font-size:clamp(11px,1.4vw,14px);color:#888;font-weight:600;margin-bottom:4px;padding-left:2px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;"></div>
       <div id="fmContent"></div>
     </div>
     <!-- FM 완독 오버레이 -->
@@ -1988,7 +1989,7 @@ function initRanking() {
    집중기억 훈련 (Focus Memory Training)
    CSV: 타입(S/T/Q),내용,보기1,보기2,보기3,보기4,정답번호(1-4)
 ══════════════════════════════════════════════════════════ */
-let fmChapter=null, fmPageIdx=0, fmWordIdx=0, fmWordStart=0, fmChWords=[];
+let fmChapter=null, fmPageIdx=0, fmWordIdx=0, fmWordStart=0, fmChWords=[], fmPageWordCount=0;
 let fmSpans=[], fmTimer=null;
 let fmQuestions=[], fmQIdx=0, fmScore=0;
 
@@ -2197,16 +2198,21 @@ function fmLoadPageGray(wordStart){
   /* overflow 감지: 실제 높이 > 사용가능 높이면 낱말 줄여서 재시도 */
   var attempts = 0;
   while(content.scrollHeight > maxH && fmSpans.length > 2 && attempts < 20){
-    wpp = Math.max(2, Math.floor(wpp*0.92)); /* 8%씩 줄이기 */
+    wpp = Math.max(2, Math.floor(wpp*0.92));
     pageWords = fmChWords.slice(fmWordStart, fmWordStart+wpp);
     renderFmWords(content, pageWords);
     attempts++;
   }
+  /* 실제 소비한 fmChWords 개수 저장 (줄바꿈 토큰 포함) */
+  fmPageWordCount = pageWords.length;
 
   var totalPages = Math.ceil(fmChWords.length/wpp)||1;
   fmPageIdx = Math.floor(fmWordStart/Math.max(1,calcFmWPP()));
 
   document.getElementById('ba').textContent='페이지 '+(fmPageIdx+1)+'/'+totalPages;
+  /* 제목 표시 */
+  var titleBar=document.getElementById('fmTitleBar');
+  if(titleBar&&fmChapter) titleBar.textContent=fmChapter.title||'';
   document.getElementById('bc').textContent=(fmPageIdx+1)+'p';
   document.getElementById('bc').style.borderColor='#2a9e00';
   document.getElementById('bb').textContent='0 / '+fmSpans.length;
@@ -2244,7 +2250,7 @@ function fmStep(){
 function fmPageDone(){
   fmSpans.forEach(function(sp){sp.className='fm-w';});
   /* 실제 이번 페이지에 표시된 낱말 수 기준으로 다음 시작점 계산 */
-  var nextStart=fmWordStart+fmSpans.length;
+  var nextStart=fmWordStart+fmPageWordCount;
   if(nextStart<fmChWords.length){
     fmLoadPageGray(nextStart);
     fmWordIdx=0;
@@ -2263,7 +2269,13 @@ function fmPageDone(){
 /* 다시보기 */
 function fmReplay(){
   document.getElementById('fmCompleteOV').style.display='none';
-  fmChWords=fmChapter.pages.join(' ').split(/\s+/).filter(function(w){return w.length>0;});
+  /* 
+ 토큰 보존하여 재구성 */
+  var rawText2=fmChapter.pages.join(' ');
+  fmChWords=rawText2.split(/(\n)/).reduce(function(arr,seg){
+    if(seg==='\n'){arr.push('\n');return arr;}
+    return arr.concat(seg.split(/\s+/).filter(function(w){return w.length>0;}));
+  },[]);
   fmWordStart=0;
   fmLoadPageGray(0);
   tState='idle';
