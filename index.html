@@ -101,6 +101,8 @@ input[type=range]{flex:1;min-width:36px;max-width:90px;}
 #dsBadge{position:absolute;bottom:8px;left:8px;z-index:10;font-size:10px;background:rgba(255,255,255,.92);border:.5px solid #ddd;border-radius:4px;padding:2px 8px;color:#666;display:flex;align-items:center;gap:4px;}
 /* 집중기억 훈련 */
 #fmArea{display:none;position:absolute;top:32px;left:0;width:100%;height:calc(100% - 32px);padding:4px 4% 44px;box-sizing:border-box;overflow:hidden;background:#f0efe8;}
+#fmTitle{display:none;}
+#fmPageInfo{display:none;}
 #fmContent{line-height:1.50;word-break:keep-all;white-space:pre-wrap;overflow:hidden;max-height:calc(100% - 8px);font-weight:600;letter-spacing:.01em;}
 .fm-w{color:#d5d5d5;transition:color .06s;font-weight:600;}
 .fm-w.on{color:#111 !important;}
@@ -402,17 +404,17 @@ body:fullscreen #app,body:-webkit-full-screen #app{width:100vw;height:100vh;bord
         <div class="step"><div class="snum">3</div><p>[불러오기 &amp; 저장] 클릭 → 완료 메시지 확인</p></div>
         <div class="step"><div class="snum">4</div><p>데이터 목록에서 새 팩을 선택하여 훈련 시작</p></div>
         <h4>공통 URL (앞 주소 + 아래 파일명)</h4>
-        <p style="background:#F3F3F3;padding:7px 10px;border-radius:5px;font-family:monospace;font-size:11px;word-break:break-all;margin-bottom:10px;">https://jsmylife153.github.io/kor/</p>
+        <p style="background:#F3F3F3;padding:7px 10px;border-radius:5px;font-family:monospace;font-size:11px;word-break:break-all;margin-bottom:10px;">https://jsmylife365.github.io/js-trainer/</p>
         <h4>사용 가능한 데이터 팩</h4>
         <ul style="margin-bottom:10px;">
           <li><b>한글_일반.csv</b> — 일반 한국어 낱말(5만 개)+문장(3만 개)+독서자료(퀴즈포함)</li>
           <li><b>성경_창세기.csv &amp; 성경_마태복음.csv</b> — 성경 모세5경+4복음서 (낱말, 문장, 읽기훈련과 퀴즈가 포함된 개별팩)</li>
         </ul>
         <p style="font-size:11px;color:#888;">예) 한글 일반팩 URL:<br>
-        <span style="font-family:monospace;word-break:break-all;">https://jsmylife153.github.io/kor/한글_일반.csv</span></p>
+        <span style="font-family:monospace;word-break:break-all;">https://jsmylife365.github.io/js-trainer/한글_일반.csv</span></p>
         <h4>WORKSHEET 다운로드</h4>
         <p style="font-size:11px;color:#555;">웹 브라우저 주소창에 아래 URL을 직접 입력하여 다운로드하세요.<br>
-        <span style="font-family:monospace;word-break:break-all;">https://jsmylife153.github.io/kor/WORKSHEET.jpg</span></p>
+        <span style="font-family:monospace;word-break:break-all;">https://jsmylife365.github.io/js-trainer/WORKSHEET.jpg</span></p>
       </div>
 
       <!-- 앱 정보 탭 -->
@@ -435,7 +437,7 @@ body:fullscreen #app,body:-webkit-full-screen #app{width:100vw;height:100vh;bord
         <h4>저작권</h4>
         <p>'JS 집중력·기억력 향상훈련'의 소유권 및 지적 재산권은 개발자 <b>조성형</b>에게 있습니다.</p>
         <h4>문의</h4>
-        <p><a href="mailto:jsmylife153@gmail.com" style="color:#185fa5;">jsmylife153@gmail.com</a></p>
+        <p><a href="mailto:jsmylife365@gmail.com" style="color:#185fa5;">jsmylife365@gmail.com</a></p>
       </div>
 
       <!-- 랭킹 탭 -->
@@ -1762,12 +1764,13 @@ setTimeout(init, 100);
    (Firebase 콘솔 → 프로젝트 설정 → 웹 앱 추가 → 구성 복사)
 ══════════════════════════════════════════════════════ */
 const FB_CONFIG = {
-  apiKey:            "AIzaSyBsbRuKEYZBU5oKNJwZMAK4XUhcq7yKd0Q",
-  authDomain:        "js-trainer-kor.firebaseapp.com",
-  projectId:         "js-trainer-kor",
-  storageBucket:     "js-trainer-kor.firebasestorage.app",
-  messagingSenderId: "315054866321",
-  appId:             "1:315054866321:web:11ad102d933fc66c042430"
+  apiKey:            "AIzaSyDDE_fLiFaXlQ6bP8g3IIrH2bKiz0eVkRk",
+  authDomain:        "js-trainer-b0139.firebaseapp.com",
+  projectId:         "js-trainer-b0139",
+  storageBucket:     "js-trainer-b0139.firebasestorage.app",
+  messagingSenderId: "800427483325",
+  appId:             "1:800427483325:web:5f8c8719ae561d163417d4",
+  measurementId:     "G-GVNB67TBCX"
 };
 
 let _fbApp = null, _fdb = null;
@@ -1992,7 +1995,56 @@ let fmQuestions=[], fmQIdx=0, fmScore=0;
 
 
 /* 장문 CSV 파싱 → [{title,pages[],questions[]}] */
+function parseFocusData(csv){
+  /* 새 형식: T행=본문, Q행=문제, S행 불필요
+     T행 전체를 이어붙인 후 약 300자 단위로 자동 페이지 분할 */
+  var clean = csv.replace(/\r\n/g,'\n').replace(/\r/g,'\n');
+  /* 따옴표 포함 필드 파서 */
+  var rows=[],row=[],cur='',inQ=false;
+  for(var k=0;k<clean.length;k++){
+    var c=clean[k];
+    if(c==='"'){ if(inQ&&clean[k+1]==='"'){cur+='"';k++;}else inQ=!inQ; }
+    else if(c===','&&!inQ){row.push(cur);cur='';}
+    else if(c==='\n'&&!inQ){row.push(cur);if(row.join('').trim())rows.push(row);row=[];cur='';}
+    else cur+=c;
+  }
+  if(cur||row.length){row.push(cur);if(row.join('').trim())rows.push(row);}
 
+  /* T행 본문 이어붙이기 + Q행 수집 */
+  var allText='', questions=[];
+  rows.forEach(function(cols){
+    var t=(cols[0]||'').trim().toUpperCase();
+    var v=(cols[1]||'').replace(/\n/g,' ').trim();
+    if(t==='타입'||t==='TYPE') return;
+    if(t==='T'&&v) allText+=(allText?' ':'')+v;
+    if(t==='Q'&&v){
+      var ans=Math.max(0,parseInt((cols[6]||'1').trim())-1);
+      questions.push({q:v,opts:[(cols[2]||'').trim(),(cols[3]||'').trim(),(cols[4]||'').trim(),(cols[5]||'').trim()],ans:ans,userAns:-1});
+    }
+  });
+
+  if(!allText) return [];
+
+  /* ~300자 단위 자동 페이지 분할 (문장 끝에서 자르기) */
+  var TARGET=220, pages=[], txt=allText.trim();
+  while(txt.length>TARGET){
+    var cutAt=TARGET;
+    /* 문장 끝(. ! ?) 찾기 */
+    var search=txt.substring(TARGET-80,TARGET+80);
+    var m=search.search(/[.!?。！？]\s/);
+    if(m>=0) cutAt=TARGET-80+m+1;
+    else{
+      /* 공백에서 자르기 */
+      var sp=txt.lastIndexOf(' ',TARGET);
+      if(sp>TARGET*0.6) cutAt=sp;
+    }
+    pages.push(txt.substring(0,cutAt).trim());
+    txt=txt.substring(cutAt).trim();
+  }
+  if(txt) pages.push(txt);
+
+  return [{title:'독서능력 향상 훈련',pages:pages,questions:questions}];
+}
 
 /* 독서 훈련 챕터 수집
    우선순위: 1) activeDS의 readingChapters
@@ -2037,7 +2089,7 @@ function startFocusTraining(){
     document.getElementById('ovB').style.display='none';
     OV.style.display='flex';
     tState='thinking';
-    tryFetch('https://jsmylife153.github.io/kor/%ED%95%9C%EA%B8%80_%EC%9D%BC%EB%B0%98.csv',null)
+    tryFetch('https://jsmylife365.github.io/js-trainer/%ED%95%9C%EA%B8%80_%EC%9D%BC%EB%B0%98.csv',null)
     .then(function(csv){
       const d=parseCSV(csv);
       const rc=d.readingChapters||[];
